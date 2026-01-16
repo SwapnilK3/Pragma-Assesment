@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model, authenticate
-from django.contrib.auth.decorators import login_required
-from django_rest.permissions import AllowAny
+from django_rest.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.serializers import UserRegistrationSerializer, UserSerializer, UserLoginSerializer
@@ -102,15 +102,34 @@ class LoginView(APIView):
         )
 
 
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh")
 
-#
-# class LogoutView(APIView):
-#     permission_classes = [AllowAny]
-#     def post(self, request):
-#         return rest_api_formatter(
-#             data=None,
-#             status_code=status.HTTP_200_OK,
-#             success=True,
-#             message='Logout successful'
-#         )
+            if not refresh_token:
+                return rest_api_formatter(
+                    data=None,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    success=False,
+                    message="Refresh token is required"
+                )
 
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_200_OK,
+                success=True,
+                message="Logout successful"
+            )
+
+        except TokenError:
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                success=False,
+                message="Invalid or expired token"
+            )
