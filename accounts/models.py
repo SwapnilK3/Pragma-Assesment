@@ -28,7 +28,7 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, name, password=None, **extra_fields):
+    def create_superuser(self, email, first_name, last_name, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
@@ -39,10 +39,10 @@ class UserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
 
-        return self.create_user(email, name, password, **extra_fields)
+        return self.create_user(email, first_name, last_name, password, **extra_fields)
 
 
-class User(AbstractBaseUser, AbstractUUID, AbstractMonitor):
+class User(AbstractBaseUser, AbstractUUID, AbstractMonitor, PermissionsMixin):
     """
     Custom User model with UUID primary key and role-based access.
     Contains common fields for all user types.
@@ -67,9 +67,9 @@ class User(AbstractBaseUser, AbstractUUID, AbstractMonitor):
         default=False,
         help_text="Flag for Staff User",
     )
-    is_authenticated = models.BooleanField(
+    is_verified = models.BooleanField(
         default=False,
-        help_text="Flag for Authenticated User"
+        help_text="Flag indicating if user verification (email, etc.) is complete"
     )
 
     date_of_birth = models.DateField(blank=True, null=True)
