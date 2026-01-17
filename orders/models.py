@@ -8,10 +8,18 @@ from products.models import Product, ProductVariant
 
 
 def get_order_number():
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT nextval('order_order_number_seq')")
-        result = cursor.fetchone()
-        return result[0]
+    """Generate unique order number. Works with both PostgreSQL and SQLite."""
+
+    # For PostgreSQL, use sequence
+    if connection.vendor == 'postgresql':
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT nextval('order_order_number_seq')")
+            result = cursor.fetchone()
+            return result[0]
+    
+    # For SQLite and others, use max + 1
+    max_order = Order.objects.aggregate(models.Max('order_number'))['order_number__max']
+    return (max_order or 0) + 1
 
 
 class Order(AbstractBaseModel):

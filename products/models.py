@@ -82,6 +82,12 @@ class ProductVariant(AbstractBaseModel):
     product = models.ForeignKey(
         Product, related_name="variants", on_delete=models.CASCADE
     )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Unit price for this variant"
+    )
 
 
 class ProductMedia(models.Model):
