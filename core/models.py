@@ -14,6 +14,7 @@ from django.db import models
 from django_countries.fields import CountryField
 from phonenumber_field.modelfields import PhoneNumberField
 
+from . import MediaType, MediaAccess
 from .validators import validate_possible_number
 
 
@@ -102,7 +103,8 @@ class PossiblePhoneNumberField(PhoneNumberField):
 
     default_validators = [validate_possible_number]
 
-class Address(AbstractUUID):
+
+class Address(AbstractUUID, AbstractActive):
     """
     Address Model
     """
@@ -142,5 +144,32 @@ class Address(AbstractUUID):
         return ", ".join(filtered_parts)
 
 
+class MediaFile(AbstractBaseModel):
+    media_type = models.CharField(
+        max_length=50, choices=MediaType.CHOICES, default=MediaType.FILE
+    )
+    extension = models.CharField(max_length=50, null=True, blank=True)
+    url = models.URLField()
+    access = models.CharField(
+        max_length=50, choices=MediaAccess.CHOICES, default=MediaAccess.PROTECTED
+    )
 
+    class Meta:
+        verbose_name = "MediaFile"
+        verbose_name_plural = "MediaFiles"
 
+    def __str__(self):
+        return f"{self.id} - {self.url}"
+
+# class Currency(AbstractUUID, AbstractActive):
+#     name = models.CharField(max_length=50, unique=True)
+#     short_name = models.CharField(max_length=50)
+#     symbol = models.CharField(max_length=50, null=True, blank=True)
+#
+#     class Meta:
+#         db_table = "currency"
+#         verbose_name = "Currency"
+#         verbose_name_plural = "Currencies"
+#
+#     def __str__(self):
+#         return self.name
