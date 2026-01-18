@@ -1,3 +1,12 @@
 from django.contrib import admin
+from products.models import (
+    Category,
+    SKU,
+    Product,
+    ProductVariant,
+    ProductMedia,
+    VariantMedia,
+)
 
-# Register your models here.
+# Register product-related models
+admin.site.register([Category, SKU, Product, ProductVariant, ProductMedia, VariantMedia])

@@ -26,7 +26,7 @@ class PaymentStatus:
     )
 
 
-class TransactionMode:
+class PaymentMode:
     UPI = "upi"
     ONLINE = "online"
     BANK_TRANSFER = "bank_transfer"

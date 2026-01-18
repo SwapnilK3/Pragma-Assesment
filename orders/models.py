@@ -1,9 +1,12 @@
 from django.db import models, connection
+from django.db.models import Sum
 
 from accounts.backends import User
 from core import Currency
 from core.models import AbstractBaseModel, Address
-from orders import OrderStatus, PaymentStatus, TransactionMode
+from discounts.utils import get_discount_amount
+from orders import OrderStatus, PaymentStatus, PaymentMode
+from orders.utils import get_tax_rate
 from products.models import Product, ProductVariant
 
 
@@ -50,8 +53,8 @@ class Order(AbstractBaseModel):
         default=PaymentStatus.PAYMENT_PENDING)
 
     payment_mode = models.CharField(
-        max_length=20, choices=TransactionMode.CHOICES,
-        default=TransactionMode.ONLINE)
+        max_length=20, choices=PaymentMode.CHOICES,
+        default=PaymentMode.ONLINE)
 
     shipping_address = models.ForeignKey(
         Address, on_delete=models.SET_NULL, null=True, blank=True,
@@ -68,6 +71,24 @@ class Order(AbstractBaseModel):
 
     def __str__(self):
         return f"{self.id} - {self.user.id}"
+
+    def get_total_payable_amount(self):
+        initial_amount = self.order_items.aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+        self.discount_amount = get_discount_amount(self) or 0
+        return initial_amount - self.discount_amount
+
+    def get_total_payable_tax(self):
+        total_payable_amount = self.total_payable_amount
+        tax_rate = get_tax_rate()
+        tax_amount = total_payable_amount * tax_rate
+        return tax_amount
+
+    def save(self, *args, **kwargs):
+        self.total_payable_amount = self.get_total_payable_amount()
+        self.total_payable_tax = self.get_total_payable_tax()
+        super().save(*args, **kwargs)
 
 
 class OrderItem(AbstractBaseModel):
@@ -99,4 +120,8 @@ class OrderItem(AbstractBaseModel):
         verbose_name_plural = 'Order Items'
 
     def save(self, *args, **kwargs):
+        self.discounted_amount = get_discount_amount(self) or 0
+        if self.discounted_amount > 0:
+            self.is_coupon_code_applied = True
         self.amount = (self.quantity * self.unit_rate) - self.discounted_amount
+        super().save(*args, **kwargs)

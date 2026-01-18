@@ -108,13 +108,13 @@ class Address(AbstractUUID, AbstractActive):
     """
     Address Model
     """
-    address_line_1 = models.CharField(max_length=256, null=True, blank=True)
+    address_line_1 = models.CharField(max_length=256)
     address_line_2 = models.CharField(max_length=256, null=True, blank=True)
-    city = models.CharField(max_length=256, blank=True)
-    city_area = models.CharField(max_length=128, blank=True)
-    postal_code = models.CharField(max_length=20, blank=True)
+    city = models.CharField(max_length=256)
+    city_area = models.CharField(max_length=128, null=True, blank=True)
+    postal_code = models.CharField(max_length=20)
     country = CountryField()
-    country_area = models.CharField(max_length=128, blank=True)
+    country_area = models.CharField(max_length=128, null=True, blank=True)
     phone = PossiblePhoneNumberField(blank=True, default="", db_index=True)
     validation_skipped = models.BooleanField(default=False)
 
