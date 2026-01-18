@@ -4,6 +4,7 @@ from factory.django import DjangoModelFactory
 from accounts.backends import User
 from core.models import Address
 from products.models import Category, Product, ProductVariant, SKU
+from orders.models import Order, OrderItem
 
 
 class UserFactory(DjangoModelFactory):
@@ -84,3 +85,25 @@ class AddressFactory(DjangoModelFactory):
     phone = '+12025551234'
     validation_skipped = False
     is_active = True
+
+
+class OrderFactory(DjangoModelFactory):
+    """Factory for Order model."""
+
+    class Meta:
+        model = Order
+
+    user = factory.SubFactory(UserFactory)
+    shipping_address = factory.SubFactory(AddressFactory)
+
+
+class OrderItemFactory(DjangoModelFactory):
+    """Factory for OrderItem model."""
+
+    class Meta:
+        model = OrderItem
+
+    order = factory.SubFactory(OrderFactory)
+    product_variant = factory.SubFactory(ProductVariantFactory)
+    quantity = 1
+    unit_rate = factory.LazyAttribute(lambda obj: obj.product_variant.price)
