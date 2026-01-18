@@ -90,6 +90,12 @@ class Order(AbstractBaseModel):
         self.total_payable_tax = self.get_total_payable_tax()
         super().save(*args, **kwargs)
 
+    @property
+    def subtotal(self):
+        return self.order_items.aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+
 
 class OrderItem(AbstractBaseModel):
     """
