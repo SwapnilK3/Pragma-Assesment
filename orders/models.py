@@ -108,11 +108,7 @@ class OrderItem(AbstractBaseModel):
         default=0,
         help_text='unit prise'
     )
-    discounted_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
-    is_coupon_code_applied = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('order', 'product_variant')
@@ -120,8 +116,5 @@ class OrderItem(AbstractBaseModel):
         verbose_name_plural = 'Order Items'
 
     def save(self, *args, **kwargs):
-        self.discounted_amount = get_discount_amount(self) or 0
-        if self.discounted_amount > 0:
-            self.is_coupon_code_applied = True
-        self.amount = (self.quantity * self.unit_rate) - self.discounted_amount
+        self.amount = self.quantity * self.unit_rate
         super().save(*args, **kwargs)

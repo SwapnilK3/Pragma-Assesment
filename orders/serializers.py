@@ -22,8 +22,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         model = OrderItem
         fields = [
             'id', 'product_variant', 'product_name', 'variant_name',
-            'quantity', 'unit_rate', 'discounted_amount', 'amount',
-            'is_coupon_code_applied', 'created_at'
+            'quantity', 'unit_rate', 'amount', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
 
@@ -175,18 +174,19 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
     def get_discount_breakdown(self, obj):
         """Provide detailed discount breakdown."""
-        return {
-            'total_discount': str(obj.discount_amount),
-            'item_discounts': [
-                {
-                    'item_id': str(item.id),
-                    'product_name': item.product_variant.product.name,
-                    'variant_name': item.product_variant.name,
-                    'discount_amount': str(item.discounted_amount)
-                }
-                for item in obj.order_items.all() if item.discounted_amount > 0
-            ]
-        }
+        return {}
+        # return {
+        #     'total_discount': str(obj.discount_amount),
+        #     'item_discounts': [
+        #         {
+        #             'item_id': str(item.id),
+        #             'product_name': item.product_variant.product.name,
+        #             'variant_name': item.product_variant.name,
+        #             'discount_amount': str(item.discounted_amount)
+        #         }
+        #         for item in obj.order_items.all() if item.discounted_amount > 0
+        #     ]
+        # }
 
     def get_shipping_address_details(self, obj):
         """Get shipping address details if available."""
