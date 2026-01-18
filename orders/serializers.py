@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from core import Currency
 from core.models import Address
+from discounts.models import AppliedDiscount
 from orders.models import Order, OrderItem
 from orders.utils import create_shipping_address
 from products.models import ProductVariant
@@ -173,20 +174,46 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         ))
 
     def get_discount_breakdown(self, obj):
-        """Provide detailed discount breakdown."""
-        return {}
-        # return {
-        #     'total_discount': str(obj.discount_amount),
-        #     'item_discounts': [
-        #         {
-        #             'item_id': str(item.id),
-        #             'product_name': item.product_variant.product.name,
-        #             'variant_name': item.product_variant.name,
-        #             'discount_amount': str(item.discounted_amount)
-        #         }
-        #         for item in obj.order_items.all() if item.discounted_amount > 0
-        #     ]
-        # }
+        """Provide detailed discount breakdown with distribution by scope."""
+        queryset = AppliedDiscount.objects.filter(
+            is_active=True,
+            order=obj
+        ).select_related('discount_rule').order_by('-discount_amount')
+
+
+        # Calculate distribution by scope
+        scope_totals = {}
+        for discount in queryset:
+            scope = discount.scope
+            if scope not in scope_totals:
+                scope_totals[scope] = {
+                    'total_amount': 0,
+                    'count': 0,
+                    'discounts': []
+                }
+            scope_totals[scope]['total_amount'] += float(discount.discount_amount)
+            scope_totals[scope]['count'] += 1
+            scope_totals[scope]['discounts'].append({
+                'rule_name': discount.discount_rule.name if discount.discount_rule else 'Unknown',
+                'amount': str(discount.discount_amount)
+            })
+        
+        # Format scope totals
+        distribution = []
+        for scope, data in scope_totals.items():
+            distribution.append({
+                'scope': scope,
+                'scope_display': scope.title(),
+                'total_amount': f"{data['total_amount']:.2f}",
+                'discount_count': data['count'],
+                'discounts': data['discounts']
+            })
+        
+        return {
+            'total_discount': str(obj.discount_amount),
+            'applied_count': queryset.count(),
+            'distribution': distribution
+        }
 
     def get_shipping_address_details(self, obj):
         """Get shipping address details if available."""
