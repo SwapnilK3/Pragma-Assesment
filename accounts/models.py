@@ -71,6 +71,10 @@ class User(AbstractBaseUser, AbstractUUID, AbstractMonitor, PermissionsMixin):
         default=False,
         help_text="Flag indicating if user verification (email, etc.) is complete"
     )
+    is_loyalty_member = models.BooleanField(
+        default=False,
+        help_text="Flag indicating if user is a loyalty program member"
+    )
 
     date_of_birth = models.DateField(blank=True, null=True)
     gender = models.CharField(
