@@ -5,6 +5,7 @@ A Django REST Framework based e-commerce backend with a powerful order discount 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Things Not Covered](#things-not-covered)
 - [Tech Stack](#tech-stack)
 - [Model Architecture](#model-architecture)
   - [Abstract Base Models](#abstract-base-models)
@@ -26,6 +27,12 @@ This project implements a complete e-commerce backend with:
 - Order management with checkout flow
 - **Discount Engine** - Automatic discount calculation based on configurable rules
 
+---
+## Things Not Covered 
+- Email validation Of the User to make user Validate
+- CRUD APIS for all Models of Product, Inventory for creating objects must use Django Admin
+- User Must be validated to create and access Orders
+- Inventory Transaction to import products into inventory
 ---
 
 ## Tech Stack
