@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.db import transaction
 from django.db.models import QuerySet
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -24,6 +25,7 @@ class OrderCheckoutView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def post(self, request):
         """Create a new order with items."""
         serializer = OrderSerializer(

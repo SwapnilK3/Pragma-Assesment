@@ -139,6 +139,9 @@ class OrderSerializer(serializers.Serializer):
                 # discounted_amount=discounted_amount,
                 # is_coupon_code_applied=is_coupon_code_applied
             )
+            inventory_obj = variant.stock_inventory
+            inventory_obj.reserved_quantity = inventory_obj.reserved_quantity + quantity
+            inventory_obj.save()
         order.save()
 
         return order

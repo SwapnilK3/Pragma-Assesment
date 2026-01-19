@@ -161,6 +161,18 @@ class MediaFile(AbstractBaseModel):
     def __str__(self):
         return f"{self.id} - {self.url}"
 
+
+class IsActiveModelManager(models.Manager):
+    """
+    Model Manager for all the models to get active and inactive objects
+    """
+
+    def get_active(self):
+        return self.filter(is_active=True)
+
+    def get_inactive(self):
+        return self.filter(is_active=False)
+
 # class Currency(AbstractUUID, AbstractActive):
 #     name = models.CharField(max_length=50, unique=True)
 #     short_name = models.CharField(max_length=50)
