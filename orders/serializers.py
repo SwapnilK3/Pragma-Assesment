@@ -3,6 +3,7 @@ from rest_framework import serializers
 from core import Currency
 from core.models import Address
 from discounts.models import AppliedDiscount
+from inventory.models import StockInventory
 from orders.models import Order, OrderItem
 from orders.utils import create_shipping_address
 from products.models import ProductVariant
@@ -140,6 +141,10 @@ class OrderSerializer(serializers.Serializer):
                 # is_coupon_code_applied=is_coupon_code_applied
             )
             inventory_obj = variant.stock_inventory
+            if not inventory_obj:
+                inventory_obj = StockInventory.objects.create(
+                    product_variant=variant
+                )
             inventory_obj.reserved_quantity = inventory_obj.reserved_quantity + quantity
             inventory_obj.save()
         order.save()
