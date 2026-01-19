@@ -1,6 +1,7 @@
+import logging
 from typing import Any
 
-from django.db import transaction
+from django.db import transaction, IntegrityError, DatabaseError
 from django.db.models import QuerySet
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -13,6 +14,8 @@ from orders.serializers import (
     OrderDetailSerializer,
     OrderListSerializer
 )
+
+logger = logging.getLogger(__name__)
 
 
 class OrderCheckoutView(APIView):
@@ -28,34 +31,72 @@ class OrderCheckoutView(APIView):
     @transaction.atomic
     def post(self, request):
         """Create a new order with items."""
-        serializer = OrderSerializer(
-            data=request.data,
-            context={'user': request.user}
-        )
+        user_id = request.user.id
+        logger.info(f"Checkout initiated by user ID: {user_id}")
 
-        if serializer.is_valid():
-            order = serializer.save()
-
-            # Return created order with full details
-            # Note: We use the order instance directly, which should have items accessible
-            detail_serializer = OrderDetailSerializer(order)
-
-            return rest_api_formatter(
-                data=detail_serializer.data,
-                status_code=status.HTTP_201_CREATED,
-                success=True,
-                message='Order created successfully'
+        try:
+            serializer = OrderSerializer(
+                data=request.data,
+                context={'user': request.user}
             )
 
-        return rest_api_formatter(
-            data=None,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            success=False,
-            message='Validation failed',
-            error_code='VALIDATION_ERROR',
-            error_message='Invalid input data',
-            error_fields=serializer.errors
-        )
+            if serializer.is_valid():
+                order = serializer.save()
+
+                # Return created order with full details
+                detail_serializer = OrderDetailSerializer(order)
+
+                logger.info(f"Order created successfully: {order.order_number} for user ID: {user_id}")
+                return rest_api_formatter(
+                    data=detail_serializer.data,
+                    status_code=status.HTTP_201_CREATED,
+                    success=True,
+                    message='Order created successfully'
+                )
+
+            logger.warning(f"Checkout validation failed for user ID: {user_id}: {serializer.errors}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                success=False,
+                message='Validation failed',
+                error_code='VALIDATION_ERROR',
+                error_message='Invalid input data',
+                error_fields=serializer.errors
+            )
+
+        except IntegrityError as e:
+            logger.error(f"Checkout integrity error for user ID: {user_id}: {str(e)}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_409_CONFLICT,
+                success=False,
+                message='Order could not be created due to a conflict',
+                error_code='INTEGRITY_ERROR',
+                error_message='Please try again'
+            )
+
+        except DatabaseError as e:
+            logger.critical(f"Database error during checkout for user ID: {user_id}: {str(e)}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                success=False,
+                message='Service temporarily unavailable',
+                error_code='DATABASE_ERROR',
+                error_message='Please try again later'
+            )
+
+        except Exception as e:
+            logger.exception(f"Unexpected error during checkout for user ID: {user_id}: {str(e)}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                success=False,
+                message='An unexpected error occurred',
+                error_code='INTERNAL_ERROR',
+                error_message='Please try again later'
+            )
 
 
 class OrderDetailView(APIView):
@@ -69,6 +110,9 @@ class OrderDetailView(APIView):
 
     def get(self, request, order_id):
         """Retrieve order details (user can only see their own orders)."""
+        user_id = request.user.id
+        logger.info(f"Order detail requested - Order ID: {order_id}, User ID: {user_id}")
+
         try:
             order = Order.objects.prefetch_related(
                 'order_items__product_variant__product'
@@ -79,6 +123,7 @@ class OrderDetailView(APIView):
 
             data = OrderDetailSerializer(order).data
 
+            logger.debug(f"Order {order_id} retrieved successfully for user ID: {user_id}")
             return rest_api_formatter(
                 data=data,
                 status_code=status.HTTP_200_OK,
@@ -87,6 +132,7 @@ class OrderDetailView(APIView):
             )
 
         except Order.DoesNotExist:
+            logger.warning(f"Order not found - Order ID: {order_id}, User ID: {user_id}")
             return rest_api_formatter(
                 data=None,
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -94,6 +140,39 @@ class OrderDetailView(APIView):
                 message='Order not found',
                 error_code='ORDER_NOT_FOUND',
                 error_message='Order does not exist or you do not have permission to view it'
+            )
+
+        except ValueError as e:
+            logger.warning(f"Invalid order ID format: {order_id}, User ID: {user_id}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                success=False,
+                message='Invalid order ID format',
+                error_code='INVALID_ORDER_ID',
+                error_message='The provided order ID is not valid'
+            )
+
+        except DatabaseError as e:
+            logger.critical(f"Database error retrieving order {order_id}: {str(e)}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                success=False,
+                message='Service temporarily unavailable',
+                error_code='DATABASE_ERROR',
+                error_message='Please try again later'
+            )
+
+        except Exception as e:
+            logger.exception(f"Unexpected error retrieving order {order_id}: {str(e)}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                success=False,
+                message='An unexpected error occurred',
+                error_code='INTERNAL_ERROR',
+                error_message='Please try again later'
             )
 
 
@@ -115,17 +194,43 @@ class OrderListView(APIView):
 
     def get(self, request):
         """List all orders for the authenticated user."""
+        user_id = request.user.id
+        logger.info(f"Order list requested by user ID: {user_id}")
 
-        paginator = Pagination()
-        queryset = self.get_queryset(request)
+        try:
+            paginator = Pagination()
+            queryset = self.get_queryset(request)
+            order_count = queryset.count()
 
-        paginated_queryset = paginator.paginate_queryset(queryset, request)
-        data = OrderListSerializer(paginated_queryset, many=True).data
+            paginated_queryset = paginator.paginate_queryset(queryset, request)
+            data = OrderListSerializer(paginated_queryset, many=True).data
 
-        # return paginator.get_paginated_response(serializer.data)
-        return rest_api_formatter(
-            data=data,
-            status_code=status.HTTP_200_OK,
-            success=True,
-            message=f'Retrieved {queryset.count()} orders'
-        )
+            logger.debug(f"Retrieved {order_count} orders for user ID: {user_id}")
+            return rest_api_formatter(
+                data=data,
+                status_code=status.HTTP_200_OK,
+                success=True,
+                message=f'Retrieved {order_count} orders'
+            )
+
+        except DatabaseError as e:
+            logger.critical(f"Database error listing orders for user ID: {user_id}: {str(e)}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                success=False,
+                message='Service temporarily unavailable',
+                error_code='DATABASE_ERROR',
+                error_message='Please try again later'
+            )
+
+        except Exception as e:
+            logger.exception(f"Unexpected error listing orders for user ID: {user_id}: {str(e)}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                success=False,
+                message='An unexpected error occurred',
+                error_code='INTERNAL_ERROR',
+                error_message='Please try again later'
+            )
