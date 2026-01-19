@@ -33,7 +33,7 @@ class StockInventory(AbstractBaseModel):
     )
     to_produce_quantity = models.IntegerField(
         default=0, validators=[MinValueValidator(0)],
-        help_text='Total quantity of stock items'
+        help_text='To produce quantity for order fulfilment'
     )
     remaining_quantity = models.IntegerField(
         default=0, validators=[MinValueValidator(0)],
@@ -65,6 +65,7 @@ class StockInventory(AbstractBaseModel):
 
     def save(self, *args, **kwargs):
         self.calculate_inventory_qty()
+        super().save(*args, **kwargs)
 
 
     def recalculate_inventory_data(self, *args, **kwargs):

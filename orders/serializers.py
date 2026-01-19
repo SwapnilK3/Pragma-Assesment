@@ -127,20 +127,14 @@ class OrderSerializer(serializers.Serializer):
             # Get price from variant
             unit_rate = variant.price
 
-            # Calculate discount (placeholder - will be implemented with discount engine)
-            # discounted_amount = Decimal('0.00')
-            # is_coupon_code_applied = False
-
             # Create order item (save() will calculate amount automatically)
             order_item = OrderItem.objects.create(
                 order=order,
                 product_variant=variant,
                 quantity=quantity,
                 unit_rate=unit_rate,
-                # discounted_amount=discounted_amount,
-                # is_coupon_code_applied=is_coupon_code_applied
             )
-            inventory_obj = variant.stock_inventory
+            inventory_obj = variant.stock_inventory.first()
             if not inventory_obj:
                 inventory_obj = StockInventory.objects.create(
                     product_variant=variant
