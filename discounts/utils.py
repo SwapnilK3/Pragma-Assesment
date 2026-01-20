@@ -42,12 +42,14 @@ def apply_discount_rule(order, rule):
     return Decimal('0')
 
 
-def get_discount_amount(order):
+def get_discount_amount(order, use_cache: bool = True):
     """
     Calculate the total discount amount for an order and create AppliedDiscount records.
     
+    Uses Redis cache to get eligible discount rules for the user quickly.
+    
     Logic:
-    1. Get all eligible discount rules
+    1. Get all eligible discount rules (cached by user + loyalty status)
     2. Apply each rule based on scope (ORDER, CATEGORY, ITEM)
     3. Handle stacking logic:
        - Stackable rules: All discounts are summed
@@ -56,13 +58,15 @@ def get_discount_amount(order):
     
     Args:
         order: The Order instance to calculate discounts for
+        use_cache: Whether to use Redis cache for getting eligible rules (default: True)
         
     Returns:
         Decimal: Total discount amount to be applied to the order
     """
     from discounts.models import AppliedDiscount
 
-    eligible_rules = get_eligible_discount_rules(order)
+    # Get eligible rules (uses cache if enabled)
+    eligible_rules = get_eligible_discount_rules(order, use_cache=use_cache)
 
     if not eligible_rules.exists():
         return Decimal('0')

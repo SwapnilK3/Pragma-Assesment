@@ -17,6 +17,7 @@ from discounts.serializers import (
     DiscountRuleListSerializer,
     AppliedDiscountSerializer
 )
+from discounts.cache import invalidate_all_discount_caches
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,9 @@ class DiscountRuleViewSet(viewsets.ModelViewSet):
 
             if serializer.is_valid():
                 discount_rule = serializer.save()
+                
+                # Invalidate all discount caches when a new rule is created
+                invalidate_all_discount_caches()
 
                 logger.info(f"Discount rule created: {discount_rule.name} (ID: {discount_rule.id})")
                 return rest_api_formatter(
@@ -212,6 +216,9 @@ class DiscountRuleViewSet(viewsets.ModelViewSet):
 
             if serializer.is_valid():
                 discount_rule = serializer.save()
+                
+                # Invalidate all discount caches when a rule is updated
+                invalidate_all_discount_caches()
 
                 logger.info(f"Discount rule updated: {discount_rule.name} (ID: {discount_rule.id})")
                 return rest_api_formatter(
@@ -274,6 +281,9 @@ class DiscountRuleViewSet(viewsets.ModelViewSet):
             rule_name = instance.name
             instance.is_active = False
             instance.save(update_fields=['is_active'])
+            
+            # Invalidate all discount caches when a rule is deleted
+            invalidate_all_discount_caches()
 
             logger.info(f"Discount rule soft deleted: {rule_name} (ID: {rule_id})")
             return rest_api_formatter(

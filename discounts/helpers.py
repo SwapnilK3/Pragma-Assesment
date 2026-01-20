@@ -6,7 +6,7 @@ from django.utils import timezone
 from discounts import DiscountType
 
 
-def get_eligible_discount_rules(order):
+def get_eligible_discount_rules(order, use_cache: bool = True):
     """
     Get all discount rules that are eligible for the given order.
 
@@ -15,29 +15,67 @@ def get_eligible_discount_rules(order):
     - start_date <= now
     - end_date is null OR end_date >= now
     - requires_loyalty check (if True, user must be loyalty member)
+    
+    Uses Redis cache for discount rule IDs (scalable - only 2 cache entries total).
     """
-    # local import because of circular import
     from discounts.models import DiscountRule
+    from discounts.cache import (
+        get_cached_active_discount_rule_ids,
+        get_cached_loyalty_discount_rule_ids,
+        cache_active_discount_rule_ids,
+        cache_loyalty_discount_rule_ids
+    )
+    
     now = timezone.now()
     user = order.user
+    is_loyalty_member = getattr(user, 'is_loyalty_member', False)
+    
+    # Try to get from cache
+    if use_cache:
+        cached_active_ids = get_cached_active_discount_rule_ids()
+        cached_loyalty_ids = get_cached_loyalty_discount_rule_ids()
+        
+        if cached_active_ids is not None and cached_loyalty_ids is not None:
+            # Cache hit - filter by loyalty status
+            if is_loyalty_member:
+                # Loyalty members get all active discounts
+                rule_ids = cached_active_ids
+            else:
+                # Regular users: exclude loyalty-only discounts
+                loyalty_set = set(cached_loyalty_ids)
+                rule_ids = [rid for rid in cached_active_ids if rid not in loyalty_set]
+            
+            return DiscountRule.objects.filter(
+                id__in=rule_ids,
+                is_active=True,
+                start_date__lte=now
+            ).filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=now)
+            ).select_related('categories', 'product_variant')
 
-    # Base queryset: active rules within valid date range
-    queryset = DiscountRule.objects.filter(
+    # Cache miss - query database
+    base_queryset = DiscountRule.objects.filter(
         is_active=True,
         start_date__lte=now
     ).filter(
-        Q(end_date__isnull=True) |
-        Q(end_date__gte=now
-          )
+        Q(end_date__isnull=True) | Q(end_date__gte=now)
     )
-
-    # Filter by loyalty requirement
-    is_loyalty_member = getattr(user, 'is_loyalty_member', False)
-    if not is_loyalty_member:
-        # Exclude rules that require loyalty if user is not a member
-        queryset = queryset.filter(requires_loyalty=False)
-
-    return queryset.select_related('categories', 'product_variant')
+    
+    # Get all active rules for caching
+    all_active_rules = base_queryset.select_related('categories', 'product_variant')
+    
+    # Cache the rule IDs (only 2 cache entries!)
+    if use_cache:
+        active_ids = [str(rule.id) for rule in all_active_rules]
+        loyalty_ids = [str(rule.id) for rule in all_active_rules if rule.requires_loyalty]
+        cache_active_discount_rule_ids(active_ids)
+        cache_loyalty_discount_rule_ids(loyalty_ids)
+    
+    # Filter for current user
+    if is_loyalty_member:
+        return all_active_rules
+    else:
+        return all_active_rules.filter(requires_loyalty=False)
 
 
 def calculate_order_subtotal(order):

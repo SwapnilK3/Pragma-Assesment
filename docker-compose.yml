@@ -1,6 +1,23 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: pragma_redis
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pragma_network
+
   db:
     image: postgres:15-alpine
     container_name: pragma_postgres
@@ -44,14 +61,19 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-postgres123}
       - DB_HOST=db
       - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - pragma_network
 
 volumes:
   postgres_data:
+  redis_data:
   static_volume:
 
 networks:
