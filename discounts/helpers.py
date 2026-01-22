@@ -85,20 +85,40 @@ def calculate_order_subtotal(order):
     )['total'] or Decimal('0')
 
 
+def get_all_child_category_ids(category):
+    """
+    Recursively get all child category IDs for a given parent category.
+    Includes the parent category itself.
+    """
+    from products.models import Category
+    
+    ids = [category.id]
+    children = Category.objects.filter(parent=category, is_active=True)
+    for child in children:
+        ids.extend(get_all_child_category_ids(child))
+    return ids
+
+
 def calculate_category_subtotal(order, category):
-    """Calculate the subtotal of items in a specific category."""
+    """Calculate the subtotal of items in a specific category (including child categories)."""
+    # Get all category IDs (parent + all children)
+    category_ids = get_all_child_category_ids(category)
+    
     return order.order_items.filter(
         is_active=True,
-        product_variant__product__category=category
+        product_variant__product__category_id__in=category_ids
     ).aggregate(
         total=Sum('amount')
     )['total'] or Decimal('0')
 
 
 def calculate_category_quantity(order, category):
-    """Calculate the total quantity of items in a specific category."""
+    """Calculate the total quantity of items in a specific category (including child categories)."""
+    # Get all category IDs (parent + all children)
+    category_ids = get_all_child_category_ids(category)
+    
     return order.order_items.filter(
-        product_variant__product__category=category
+        product_variant__product__category_id__in=category_ids
     ).aggregate(
         total=Sum('quantity')
     )['total'] or 0
