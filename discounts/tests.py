@@ -461,6 +461,8 @@ class DiscountEngineTest(TestCase):
 
     def setUp(self):
         """Set up test data."""
+        # Clear discount cache before each test to avoid cache contamination
+        invalidate_all_discount_caches()
 
         # Create user
         self.user = UserFactory(email='customer@example.com', is_loyalty_member=False)
