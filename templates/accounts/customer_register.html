@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Account - Pragma E-Commerce{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card customer">
+        <div class="text-center mb-4">
+            <i class="bi bi-person-plus-fill fs-1 text-success"></i>
+            <h2 class="mt-2">Create Account</h2>
+            <span class="role-badge customer">
+                <i class="bi bi-person-fill"></i> Customer Registration
+            </span>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <form id="registerForm" novalidate>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="first_name" name="first_name" 
+                               placeholder="First Name" required>
+                        <label for="first_name">First Name</label>
+                        <div class="invalid-feedback">First name is required.</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="last_name" name="last_name" 
+                               placeholder="Last Name" required>
+                        <label for="last_name">Last Name</label>
+                        <div class="invalid-feedback">Last name is required.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input type="email" class="form-control" id="email" name="email" 
+                       placeholder="name@example.com" required>
+                <label for="email"><i class="bi bi-envelope"></i> Email address</label>
+                <div class="invalid-feedback">Please enter a valid email address.</div>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input type="password" class="form-control" id="password" name="password" 
+                       placeholder="Password" required minlength="8">
+                <label for="password"><i class="bi bi-lock"></i> Password</label>
+                <div class="invalid-feedback">Password must be at least 8 characters.</div>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                       placeholder="Confirm Password" required>
+                <label for="confirm_password"><i class="bi bi-lock-fill"></i> Confirm Password</label>
+                <div class="invalid-feedback">Passwords do not match.</div>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="terms" required>
+                <label class="form-check-label" for="terms">
+                    I agree to the <a href="#" class="text-decoration-none">Terms of Service</a>
+                </label>
+                <div class="invalid-feedback">You must agree to the terms.</div>
+            </div>
+
+            <button type="submit" class="btn btn-customer w-100 py-2" id="registerBtn">
+                <span class="btn-text">Create Account</span>
+                <span class="loading-spinner spinner-border spinner-border-sm" role="status"></span>
+            </button>
+        </form>
+
+        <hr class="my-4">
+
+        <p class="text-center text-muted mb-2">Already have an account?</p>
+        <a href="{% url 'customer_login' %}" class="btn btn-outline-success w-100">
+            Sign In
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Password match validation
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = this.value;
+    
+    if (password !== confirmPassword) {
+        this.setCustomValidity('Passwords do not match');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const alertContainer = document.getElementById('alert-container');
+    const registerBtn = document.getElementById('registerBtn');
+    
+    // Clear previous alerts
+    alertContainer.innerHTML = '';
+    
+    // Check password match
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (password !== confirmPassword) {
+        showAlert(alertContainer, 'Passwords do not match.');
+        return;
+    }
+    
+    // Validate form
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+    
+    setLoading(registerBtn, true);
+    
+    try {
+        const response = await API.post('/auth/register/', {
+            email: document.getElementById('email').value,
+            password: password,
+            password_confirm: confirmPassword,
+            first_name: document.getElementById('first_name').value,
+            last_name: document.getElementById('last_name').value
+        });
+        
+        if (response.success) {
+            // Store tokens and user
+            TokenManager.setTokens(
+                response.data.tokens.access,
+                response.data.tokens.refresh
+            );
+            TokenManager.setUser(response.data.user);
+            
+            showAlert(alertContainer, 'Account created successfully! Redirecting...', 'success');
+            setTimeout(() => {
+                redirectToDashboard('customer');
+            }, 1500);
+        } else {
+            const errorMsg = response.error_message || response.message || 'Registration failed';
+            showAlert(alertContainer, errorMsg);
+        }
+    } catch (error) {
+        showAlert(alertContainer, 'Network error. Please try again.');
+        console.error('Registration error:', error);
+    } finally {
+        setLoading(registerBtn, false);
+    }
+});
+</script>
+{% endblock %}

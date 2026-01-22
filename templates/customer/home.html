@@ -1,0 +1,2069 @@
+{% extends 'base.html' %}
+
+{% block title %}Shop - Pragma E-Commerce{% endblock %}
+
+{% block extra_css %}
+<style>
+    body { background-color: #f8f9fa; }
+    
+    /* Navbar */
+    .navbar-shop {
+        background: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 15px 0;
+    }
+    .navbar-brand { font-weight: bold; color: #198754 !important; font-size: 1.5rem; }
+    .nav-link { color: #333 !important; font-weight: 500; }
+    .nav-link:hover { color: #198754 !important; }
+    .cart-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #dc3545;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Hero Section */
+    .hero {
+        background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+        color: white;
+        padding: 60px 0;
+        margin-bottom: 40px;
+    }
+    .hero h1 { font-size: 2.5rem; font-weight: bold; }
+    
+    /* Product Card */
+    .product-card {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.12);
+    }
+    .product-image {
+        height: 200px;
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 4rem;
+        color: #ccc;
+    }
+    .product-body { padding: 20px; }
+    .product-category {
+        font-size: 0.75rem;
+        color: #198754;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 5px;
+    }
+    .product-name { font-weight: 600; margin-bottom: 10px; }
+    .product-price { 
+        font-size: 1.25rem; 
+        font-weight: bold; 
+        color: #198754;
+    }
+    .product-stock {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .product-stock.low { color: #dc3545; }
+    
+    /* Variants Select */
+    .variant-select {
+        font-size: 0.875rem;
+        padding: 5px 10px;
+        border-radius: 5px;
+    }
+    
+    /* Cart Sidebar */
+    .cart-sidebar {
+        position: fixed;
+        top: 0;
+        right: -400px;
+        width: 400px;
+        height: 100vh;
+        background: white;
+        box-shadow: -5px 0 20px rgba(0,0,0,0.15);
+        transition: right 0.3s;
+        z-index: 1050;
+        display: flex;
+        flex-direction: column;
+    }
+    .cart-sidebar.open { right: 0; }
+    .cart-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s;
+        z-index: 1040;
+    }
+    .cart-overlay.open { opacity: 1; visibility: visible; }
+    .cart-header {
+        padding: 20px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .cart-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+    }
+    .cart-footer {
+        padding: 20px;
+        border-top: 1px solid #eee;
+        background: #f8f9fa;
+    }
+    .cart-item {
+        display: flex;
+        padding: 15px 0;
+        border-bottom: 1px solid #eee;
+    }
+    .cart-item-image {
+        width: 60px;
+        height: 60px;
+        background: #f0f0f0;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+    }
+    .cart-item-info { flex: 1; }
+    .cart-item-name { font-weight: 500; font-size: 0.9rem; }
+    .cart-item-price { color: #198754; font-weight: 600; }
+    .cart-item-qty { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+    .cart-item-qty button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #ddd; background: white; }
+    .cart-item-qty button:hover { background: #f0f0f0; }
+    
+    /* Filter Bar */
+    .filter-bar {
+        background: white;
+        border-radius: 12px;
+        padding: 15px 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .filter-bar .form-label {
+        font-weight: 500;
+        color: #666;
+    }
+    .filter-bar .input-group-text {
+        background: transparent;
+        border-right: none;
+    }
+    .filter-bar .input-group .form-control {
+        border-left: none;
+    }
+    .filter-bar .input-group .form-control:focus {
+        box-shadow: none;
+        border-color: #ced4da;
+    }
+    
+    /* Address Cards */
+    .address-card {
+        transition: all 0.2s ease;
+        border: 2px solid #dee2e6;
+    }
+    .address-card:hover {
+        border-color: #198754;
+        background-color: #f8f9fa;
+    }
+    .address-card.border-success {
+        border-color: #198754;
+        background-color: #d1e7dd;
+    }
+    
+    /* Section Visibility */
+    .section { display: none; }
+    .section.active { display: block; }
+    
+    /* Orders Section */
+    .order-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+    .order-status {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    .order-status.created { background: #e9ecef; color: #495057; }
+    .order-status.confirmed { background: #cff4fc; color: #055160; }
+    .order-status.processing { background: #fff3cd; color: #664d03; }
+    .order-status.shipped { background: #cfe2ff; color: #084298; }
+    .order-status.delivered { background: #d1e7dd; color: #0a3622; }
+    .order-status.cancelled { background: #f8d7da; color: #58151c; }
+    
+    /* Order Items */
+    .order-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .order-item:last-child { border-bottom: none; }
+    .order-item-name { font-weight: 500; }
+    .order-item-variant { font-size: 0.85rem; color: #6c757d; }
+    .order-item-qty { color: #6c757d; font-size: 0.9rem; }
+    .order-summary { background: #f8f9fa; border-radius: 10px; padding: 15px; margin-top: 15px; }
+    .order-summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .order-summary-row.total { font-weight: bold; font-size: 1.1rem; border-top: 1px solid #dee2e6; padding-top: 10px; margin-top: 10px; }
+    
+    /* Payment Review */
+    .payment-section { background: #fff; border-radius: 10px; border: 1px solid #e9ecef; margin-bottom: 15px; }
+    .payment-section-header { 
+        background: #f8f9fa; 
+        padding: 12px 15px; 
+        border-bottom: 1px solid #e9ecef;
+        font-weight: 600;
+        border-radius: 10px 10px 0 0;
+    }
+    .payment-section-body { padding: 15px; }
+    .discount-item {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border-radius: 8px;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid #28a745;
+    }
+    .discount-item.non-stackable {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+        border-left-color: #ffc107;
+    }
+    .discount-item.not-applied {
+        background: #f8f9fa;
+        border-left-color: #6c757d;
+        opacity: 0.7;
+    }
+    .discount-name { font-weight: 600; color: #155724; }
+    .discount-item.non-stackable .discount-name { color: #856404; }
+    .discount-item.not-applied .discount-name { color: #6c757d; text-decoration: line-through; }
+    .discount-reason { font-size: 0.85rem; color: #155724; }
+    .discount-item.non-stackable .discount-reason { color: #856404; }
+    .discount-item.not-applied .discount-reason { color: #6c757d; font-style: italic; }
+    .discount-amount { font-weight: bold; color: #28a745; font-size: 1.1rem; }
+    .discount-item.non-stackable .discount-amount { color: #856404; }
+    .discount-item.not-applied .discount-amount { color: #6c757d; text-decoration: line-through; }
+    .discount-scope { 
+        display: inline-block; 
+        background: rgba(40, 167, 69, 0.2); 
+        padding: 2px 8px; 
+        border-radius: 12px; 
+        font-size: 0.75rem;
+        color: #155724;
+    }
+    .discount-item.non-stackable .discount-scope { 
+        background: rgba(255, 193, 7, 0.3);
+        color: #856404;
+    }
+    .stackable-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-left: 5px;
+    }
+    .stackable-badge.stackable {
+        background: #28a745;
+        color: white;
+    }
+    .stackable-badge.non-stackable {
+        background: #ffc107;
+        color: #856404;
+    }
+    .discount-explanation {
+        background: #e9ecef;
+        border-radius: 8px;
+        padding: 10px 15px;
+        font-size: 0.85rem;
+        color: #495057;
+        margin-bottom: 15px;
+    }
+    .discount-explanation i { color: #007bff; margin-right: 5px; }
+    .payment-method-option {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .payment-method-option:hover { border-color: #28a745; }
+    .payment-method-option.selected { border-color: #28a745; background: #d4edda; }
+    .payment-method-option.disabled { opacity: 0.5; cursor: not-allowed; }
+    .payment-method-option.disabled:hover { border-color: #e9ecef; }
+    .payment-total-box {
+        background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+    }
+    .payment-total-amount { font-size: 2rem; font-weight: bold; }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    .empty-state i { font-size: 4rem; margin-bottom: 20px; opacity: 0.3; }
+    
+    /* Login Prompt */
+    .login-prompt {
+        background: linear-gradient(135deg, #198754, #20c997);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navbar -->
+<nav class="navbar navbar-shop navbar-expand-lg sticky-top">
+    <div class="container">
+        <a class="navbar-brand" href="#">
+            <i class="bi bi-shop"></i> Pragma Shop
+        </a>
+        <div class="d-flex align-items-center">
+            <ul class="navbar-nav me-3">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" onclick="showSection('products')">
+                        <i class="bi bi-grid"></i> Products
+                    </a>
+                </li>
+                <li class="nav-item" id="orders-nav" style="display: none;">
+                    <a class="nav-link" href="#" onclick="showSection('orders')">
+                        <i class="bi bi-bag-check"></i> My Orders
+                    </a>
+                </li>
+            </ul>
+            <button class="btn btn-outline-success position-relative me-3" onclick="toggleCart()">
+                <i class="bi bi-cart3"></i>
+                <span class="cart-badge" id="cart-count">0</span>
+            </button>
+            <div id="auth-buttons">
+                <a href="{% url 'customer_login' %}" class="btn btn-success">
+                    <i class="bi bi-box-arrow-in-right"></i> Login
+                </a>
+            </div>
+            <div id="user-menu" style="display: none;">
+                <div class="dropdown">
+                    <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> <span id="user-name">User</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" onclick="showSection('profile')"><i class="bi bi-person"></i> My Profile</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="showSection('orders')"><i class="bi bi-bag"></i> My Orders</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-left"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero" id="hero-section">
+    <div class="container">
+        <h1><i class="bi bi-stars"></i> Welcome to Pragma Shop</h1>
+        <p class="lead mb-0">Discover amazing products at great prices</p>
+    </div>
+</section>
+
+<!-- Main Content -->
+<div class="container">
+    <div id="alert-container"></div>
+    
+    <!-- Products Section -->
+    <section id="products-section" class="section active">
+        <!-- Filters Bar -->
+        <div class="filter-bar mb-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4 col-lg-3">
+                    <label class="form-label small mb-1">Search</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="search-input" placeholder="Search products..." oninput="applyBackendFilters()">
+                    </div>
+                </div>
+                <div class="col-md-3 col-lg-3">
+                    <label class="form-label small mb-1">Category</label>
+                    <select class="form-select" id="category-filter" onchange="applyBackendFilters()">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="col-md-3 col-lg-3">
+                    <label class="form-label small mb-1">Sort By</label>
+                    <select class="form-select" id="sort-filter" onchange="renderProducts()">
+                        <option value="">Default</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                        <option value="name">Name: A-Z</option>
+                    </select>
+                </div>
+                <div class="col-md-2 col-lg-3">
+                    <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="row g-4" id="products-grid">
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-success"></div>
+                <p class="mt-3 text-muted">Loading products...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Orders Section -->
+    <section id="orders-section" class="section">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <h3 class="mb-4"><i class="bi bi-bag-check text-success"></i> My Orders</h3>
+                <div id="orders-container">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-success"></div>
+                    </div>
+                </div>
+                <!-- Pagination -->
+                <nav class="mt-4" id="orders-pagination" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted" id="orders-page-info">Page 1 of 1</small>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item" id="orders-prev">
+                                <a class="page-link" href="#" onclick="loadOrdersPage(customerOrdersPage - 1); return false;">
+                                    <i class="bi bi-chevron-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="page-item active">
+                                <span class="page-link" id="orders-current">1</span>
+                            </li>
+                            <li class="page-item" id="orders-next">
+                                <a class="page-link" href="#" onclick="loadOrdersPage(customerOrdersPage + 1); return false;">
+                                    Next <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </section>
+
+    <!-- Profile Section -->
+    <section id="profile-section" class="section">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-person-circle"></i> My Profile</h5>
+                    </div>
+                    <div class="card-body" id="profile-content">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-success"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Cart Sidebar -->
+<div class="cart-overlay" onclick="toggleCart()"></div>
+<div class="cart-sidebar" id="cart-sidebar">
+    <div class="cart-header">
+        <h5 class="mb-0"><i class="bi bi-cart3 text-success"></i> Your Cart</h5>
+        <button class="btn-close" onclick="toggleCart()"></button>
+    </div>
+    <div class="cart-body" id="cart-items">
+        <div class="empty-state">
+            <i class="bi bi-cart-x"></i>
+            <p>Your cart is empty</p>
+        </div>
+    </div>
+    <div class="cart-footer">
+        <div class="d-flex justify-content-between mb-3">
+            <span>Subtotal</span>
+            <strong id="cart-subtotal">₹0.00</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-3" id="discount-row" style="display: none !important;">
+            <span class="text-success">Discount</span>
+            <strong class="text-success" id="cart-discount">-₹0.00</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-3">
+            <span class="fs-5">Total</span>
+            <strong class="fs-5 text-success" id="cart-total">₹0.00</strong>
+        </div>
+        <button class="btn btn-success w-100" onclick="showCheckoutModal()" id="checkout-btn">
+            <i class="bi bi-credit-card"></i> Checkout
+        </button>
+        <div id="login-to-checkout" class="mt-3 text-center" style="display: none;">
+            <small class="text-muted">Please <a href="{% url 'customer_login' %}" class="text-success">login</a> to checkout</small>
+        </div>
+    </div>
+</div>
+
+<!-- Checkout Modal - Step 1: Shipping -->
+<div class="modal fade" id="checkoutModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="background: white;">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-truck text-success"></i> Shipping Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="checkoutForm">
+                <div class="modal-body">
+                    <!-- Saved Addresses Section -->
+                    <div id="saved-addresses-section" class="mb-4" style="display: none;">
+                        <h6 class="mb-3"><i class="bi bi-geo-alt-fill text-success"></i> Saved Addresses</h6>
+                        <div id="saved-addresses-container" class="row g-2">
+                            <!-- Saved addresses will be loaded here -->
+                        </div>
+                        <hr class="my-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="use-new-address" onchange="toggleNewAddressForm()">
+                            <label class="form-check-label" for="use-new-address">
+                                <i class="bi bi-plus-circle"></i> Use a new address
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden field for selected address ID -->
+                    <input type="hidden" id="selected-address-id" value="">
+                    
+                    <!-- New Address Form -->
+                    <div id="new-address-form">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Address Line 1 *</label>
+                                <input type="text" class="form-control" id="ship-address1" placeholder="Street address">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Address Line 2</label>
+                                <input type="text" class="form-control" id="ship-address2" placeholder="Apartment, suite, etc.">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">City *</label>
+                                <input type="text" class="form-control" id="ship-city">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">State/Area *</label>
+                                <input type="text" class="form-control" id="ship-state">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Postal Code *</label>
+                                <input type="text" class="form-control" id="ship-postal">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Country *</label>
+                                <select class="form-select" id="ship-country">
+                                    <option value="IN">India</option>
+                                    <option value="US">United States</option>
+                                    <option value="UK">United Kingdom</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Phone *</label>
+                                <input type="tel" class="form-control" id="ship-phone" placeholder="+91 9876543210">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="continue-to-payment-btn">
+                        Continue to Payment <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Review Modal - Step 2: Review & Pay -->
+<div class="modal fade" id="paymentReviewModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-receipt-cutoff"></i> Order Review & Payment</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="payment-review-content">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-success"></div>
+                    <p class="mt-2 text-muted">Loading order summary...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" onclick="backToShipping()">
+                    <i class="bi bi-arrow-left"></i> Back
+                </button>
+                <button type="button" class="btn btn-success btn-lg" id="confirm-order-btn" onclick="confirmOrder()">
+                    <i class="bi bi-check-circle"></i> Confirm & Place Order
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Login Modal for Checkout -->
+<div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body p-4">
+                <div class="login-prompt">
+                    <i class="bi bi-person-lock fs-1 mb-3 d-block"></i>
+                    <h4>Login Required</h4>
+                    <p class="mb-4">Please login to place your order</p>
+                    <a href="{% url 'customer_login' %}" class="btn btn-light btn-lg">
+                        <i class="bi bi-box-arrow-in-right"></i> Login to Continue
+                    </a>
+                    <div class="mt-3">
+                        <small>Don't have an account? <a href="{% url 'customer_register' %}" class="text-white">Register here</a></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Detail Modal -->
+<div class="modal fade" id="orderDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-receipt"></i> Order Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="order-detail-content">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-success"></div>
+                    <p class="mt-2 text-muted">Loading order details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// =============================================================================
+// UTILITY FUNCTIONS - Single source of truth for common operations
+// =============================================================================
+
+/**
+ * Extract data array from API response (handles all response formats)
+ * @param {Object} response - API response
+ * @returns {Array} - Data array
+ */
+function extractDataArray(response) {
+    if (!response) return [];
+    const data = response.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.results)) return data.results;
+    if (response.results && Array.isArray(response.results)) return response.results;
+    return [];
+}
+
+/**
+ * Extract pagination info from API response
+ * @param {Object} response - API response
+ * @returns {Object} - Pagination info with defaults
+ */
+function extractPagination(response) {
+    const defaults = { current_page: 1, total_pages: 1, total_count: 0, page_size: 10 };
+    if (!response) return defaults;
+    const data = response.data;
+    if (data && data.pagination) return { ...defaults, ...data.pagination };
+    return defaults;
+}
+
+/**
+ * Format currency value
+ * @param {number|string} value - Value to format
+ * @returns {string} - Formatted currency string
+ */
+function formatCurrency(value) {
+    return '₹' + parseFloat(value || 0).toFixed(2);
+}
+
+// =============================================================================
+// DATA & STATE
+// =============================================================================
+
+// Cart data
+let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+let products = [];
+let variants = [];
+let categories = [];
+let inventory = {};
+
+// Check authentication
+const isLoggedIn = TokenManager.isAuthenticated();
+const user = TokenManager.getUser();
+
+// Update UI based on auth state
+function updateAuthUI() {
+    if (isLoggedIn && user) {
+        document.getElementById('auth-buttons').style.display = 'none';
+        document.getElementById('user-menu').style.display = 'block';
+        document.getElementById('user-name').textContent = user.first_name || user.email.split('@')[0];
+        document.getElementById('orders-nav').style.display = 'block';
+        document.getElementById('checkout-btn').style.display = 'block';
+        document.getElementById('login-to-checkout').style.display = 'none';
+    } else {
+        document.getElementById('auth-buttons').style.display = 'block';
+        document.getElementById('user-menu').style.display = 'none';
+        document.getElementById('orders-nav').style.display = 'none';
+        document.getElementById('checkout-btn').style.display = 'none';
+        document.getElementById('login-to-checkout').style.display = 'block';
+    }
+}
+
+updateAuthUI();
+
+// Section switching
+function showSection(section) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    
+    if (section === 'products') {
+        document.getElementById('products-section').classList.add('active');
+        document.getElementById('hero-section').style.display = 'block';
+        document.querySelector('[onclick="showSection(\'products\')"]').classList.add('active');
+    } else if (section === 'orders') {
+        if (!isLoggedIn) {
+            new bootstrap.Modal(document.getElementById('loginModal')).show();
+            return;
+        }
+        document.getElementById('orders-section').classList.add('active');
+        document.getElementById('hero-section').style.display = 'none';
+        document.querySelector('[onclick="showSection(\'orders\')"]')?.classList.add('active');
+        loadOrders();
+    } else if (section === 'profile') {
+        if (!isLoggedIn) {
+            new bootstrap.Modal(document.getElementById('loginModal')).show();
+            return;
+        }
+        document.getElementById('profile-section').classList.add('active');
+        document.getElementById('hero-section').style.display = 'none';
+        loadProfile();
+    }
+}
+
+// Cart functions
+function toggleCart() {
+    document.getElementById('cart-sidebar').classList.toggle('open');
+    document.querySelector('.cart-overlay').classList.toggle('open');
+}
+
+function updateCartUI() {
+    const cartItems = document.getElementById('cart-items');
+    const cartCount = document.getElementById('cart-count');
+    
+    cartCount.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+    
+    if (cart.length === 0) {
+        cartItems.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-cart-x"></i>
+                <p>Your cart is empty</p>
+            </div>
+        `;
+        document.getElementById('cart-subtotal').textContent = '₹0.00';
+        document.getElementById('cart-total').textContent = '₹0.00';
+        return;
+    }
+    
+    cartItems.innerHTML = cart.map((item, index) => `
+        <div class="cart-item">
+            <div class="cart-item-image">
+                <i class="bi bi-box text-muted"></i>
+            </div>
+            <div class="cart-item-info">
+                <div class="cart-item-name">${item.name}</div>
+                <div class="cart-item-price">₹${item.price.toFixed(2)}</div>
+                <div class="cart-item-qty">
+                    <button onclick="updateCartQty(${index}, -1)">-</button>
+                    <span>${item.quantity}</span>
+                    <button onclick="updateCartQty(${index}, 1)">+</button>
+                    <button class="btn btn-sm text-danger ms-2" onclick="removeFromCart(${index})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    document.getElementById('cart-subtotal').textContent = '₹' + subtotal.toFixed(2);
+    document.getElementById('cart-total').textContent = '₹' + subtotal.toFixed(2);
+    
+    localStorage.setItem('cart', JSON.stringify(cart));
+}
+
+function addToCart(variantId) {
+    const variant = variants.find(v => v.id === variantId);
+    if (!variant) return;
+    
+    const existingIndex = cart.findIndex(item => item.variantId === variantId);
+    
+    // Check inventory - support both old format (number) and new format (object with isUnlimited)
+    const stockInfo = inventory[variantId];
+    const stock = typeof stockInfo === 'object' ? stockInfo.quantity : (stockInfo || 0);
+    const isUnlimited = typeof stockInfo === 'object' ? stockInfo.isUnlimited : false;
+    const currentQty = existingIndex >= 0 ? cart[existingIndex].quantity : 0;
+    
+    // Allow if unlimited stock, otherwise check quantity
+    if (!isUnlimited && currentQty >= stock) {
+        showAlert(document.getElementById('alert-container'), 'Not enough stock available', 'warning');
+        return;
+    }
+    
+    if (existingIndex >= 0) {
+        cart[existingIndex].quantity++;
+    } else {
+        cart.push({
+            variantId: variantId,
+            productId: variant.product,
+            name: variant.product_name + ' - ' + (variant.sku_name || variant.name || 'Variant'),
+            price: parseFloat(variant.price || 0),
+            quantity: 1
+        });
+    }
+    
+    updateCartUI();
+    showAlert(document.getElementById('alert-container'), 'Added to cart!', 'success');
+}
+
+function updateCartQty(index, delta) {
+    const item = cart[index];
+    const newQty = item.quantity + delta;
+    
+    if (newQty <= 0) {
+        removeFromCart(index);
+        return;
+    }
+    
+    // Check inventory - support both old format (number) and new format (object with isUnlimited)
+    const stockInfo = inventory[item.variantId];
+    const stock = typeof stockInfo === 'object' ? stockInfo.quantity : (stockInfo || 0);
+    const isUnlimited = typeof stockInfo === 'object' ? stockInfo.isUnlimited : false;
+    
+    // Allow if unlimited stock, otherwise check quantity
+    if (!isUnlimited && newQty > stock) {
+        showAlert(document.getElementById('alert-container'), 'Not enough stock', 'warning');
+        return;
+    }
+    
+    cart[index].quantity = newQty;
+    updateCartUI();
+}
+
+function removeFromCart(index) {
+    cart.splice(index, 1);
+    updateCartUI();
+}
+
+// Helper function to get stock info for a variant
+function getStockInfo(variantId) {
+    const stockData = inventory[variantId];
+    if (typeof stockData === 'object') {
+        return {
+            quantity: stockData.quantity || 0,
+            isUnlimited: stockData.isUnlimited || false,
+            display: stockData.isUnlimited ? 'Unlimited' : (stockData.quantity > 0 ? stockData.quantity + ' in stock' : 'Out of stock'),
+            isAvailable: stockData.isUnlimited || stockData.quantity > 0,
+            isLow: !stockData.isUnlimited && stockData.quantity > 0 && stockData.quantity < 5
+        };
+    }
+    // Fallback for old format (just a number)
+    const qty = stockData || 0;
+    return {
+        quantity: qty,
+        isUnlimited: false,
+        display: qty > 0 ? qty + ' in stock' : 'Out of stock',
+        isAvailable: qty > 0,
+        isLow: qty > 0 && qty < 5
+    };
+}
+
+// Track if categories have been loaded (to avoid resetting filter)
+let categoriesLoaded = false;
+
+// Load products
+async function loadProducts(filters = {}) {
+    try {
+        // Build query params for backend filtering
+        const params = new URLSearchParams();
+        if (filters.search) params.append('search', filters.search);
+        if (filters.category) params.append('category', filters.category);
+        
+        const queryString = params.toString() ? `?${params.toString()}` : '';
+        
+        // Only load categories once on initial load
+        const requests = [
+            API.get(`/product/products/${queryString}`),
+            API.get('/product/variants/'),
+            API.get('/inventory/stock/')
+        ];
+        
+        // Only fetch categories if not already loaded
+        if (!categoriesLoaded) {
+            requests.push(API.get('/product/categories/'));
+        }
+        
+        const responses = await Promise.all(requests);
+        
+        products = responses[0].data || responses[0].results || [];
+        variants = responses[1].data || responses[1].results || [];
+        const inventoryRes = responses[2];
+        const inventoryList = inventoryRes.data || inventoryRes.results || [];
+        
+        // Only update categories if fetched
+        if (!categoriesLoaded && responses[3]) {
+            categories = responses[3].data || responses[3].results || [];
+            
+            // Populate category filter once
+            const categoryFilter = document.getElementById('category-filter');
+            categoryFilter.innerHTML = '<option value="">All Categories</option>' +
+                categories.map(c => `<option value="${c.id}">${c.name}${c.children_count > 0 ? ` (${c.children_count} sub)` : ''}</option>`).join('');
+            categoriesLoaded = true;
+        }
+        
+        // Map inventory by variant (and product if no variant)
+        // Store both quantity and unlimited flag
+        inventoryList.forEach(inv => {
+            const stockInfo = {
+                quantity: inv.remaining_quantity || inv.total_quantity || 0,
+                isUnlimited: inv.is_unlimited_stock || false
+            };
+            
+            if (inv.product_variant) {
+                inventory[inv.product_variant] = stockInfo;
+            } else if (inv.product) {
+                // If inventory is at product level, map it to all variants of that product
+                variants.filter(v => v.product === inv.product).forEach(v => {
+                    if (!inventory[v.id]) {
+                        inventory[v.id] = stockInfo;
+                    }
+                });
+            }
+        });
+        
+        renderProducts();
+    } catch(e) {
+        console.error('Load products error:', e);
+        document.getElementById('products-grid').innerHTML = `
+            <div class="col-12 text-center py-5 text-danger">
+                <i class="bi bi-exclamation-triangle fs-1"></i>
+                <p>Error loading products</p>
+            </div>
+        `;
+    }
+}
+
+function clearFilters() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('category-filter').value = '';
+    document.getElementById('sort-filter').value = '';
+    loadProducts(); // Reload from backend with no filters
+}
+
+// Apply backend filters (search & category)
+let filterTimeout = null;
+function applyBackendFilters() {
+    // Debounce to avoid too many API calls
+    if (filterTimeout) clearTimeout(filterTimeout);
+    filterTimeout = setTimeout(() => {
+        const search = document.getElementById('search-input').value.trim();
+        const category = document.getElementById('category-filter').value;
+        loadProducts({ search, category });
+    }, 300);
+}
+
+function renderProducts() {
+    const search = document.getElementById('search-input').value.toLowerCase();
+    const categoryId = document.getElementById('category-filter').value;
+    const sort = document.getElementById('sort-filter').value;
+    
+    // Group variants by product
+    let productList = products.map(p => {
+        const productVariants = variants.filter(v => v.product === p.id);
+        const minPrice = productVariants.length > 0 ? 
+            Math.min(...productVariants.map(v => parseFloat(v.price || 0))) : 0;
+        
+        return {
+            ...p,
+            variants: productVariants,
+            minPrice: minPrice,
+            categoryName: categories.find(c => c.id === p.category)?.name || 'Uncategorized'
+        };
+    });
+    
+    // Filter
+    if (search) {
+        productList = productList.filter(p => 
+            p.name.toLowerCase().includes(search) || 
+            p.description?.toLowerCase().includes(search)
+        );
+    }
+    if (categoryId) {
+        productList = productList.filter(p => p.category === categoryId);
+    }
+    
+    // Sort
+    if (sort === 'price-low') {
+        productList.sort((a, b) => a.minPrice - b.minPrice);
+    } else if (sort === 'price-high') {
+        productList.sort((a, b) => b.minPrice - a.minPrice);
+    } else if (sort === 'name') {
+        productList.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    
+    const grid = document.getElementById('products-grid');
+    
+    if (productList.length === 0) {
+        grid.innerHTML = `
+            <div class="col-12 empty-state">
+                <i class="bi bi-search"></i>
+                <p>No products found</p>
+            </div>
+        `;
+        return;
+    }
+    
+    grid.innerHTML = productList.map(p => {
+        const hasVariants = p.variants.length > 0;
+        const defaultVariant = p.variants[0];
+        const defaultStockInfo = defaultVariant ? getStockInfo(defaultVariant.id) : { display: 'Out of stock', isAvailable: false, isLow: false };
+        
+        return `
+            <div class="col-md-6 col-lg-4">
+                <div class="product-card">
+                    <div class="product-image">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <div class="product-body">
+                        <div class="product-category">${p.categoryName}</div>
+                        <h5 class="product-name">${p.name}</h5>
+                        <p class="text-muted small mb-3">${(p.description || '').substring(0, 80)}${p.description?.length > 80 ? '...' : ''}</p>
+                        
+                        ${hasVariants ? `
+                            <div class="mb-3">
+                                <select class="form-select variant-select" id="variant-${p.id}" onchange="updateProductPrice('${p.id}')">
+                                    ${p.variants.map(v => {
+                                        const vStock = getStockInfo(v.id);
+                                        return `<option value="${v.id}" data-price="${v.price}" data-unlimited="${vStock.isUnlimited}" data-stock="${vStock.quantity}">
+                                            ${v.sku_name || v.name || 'Variant'} - ₹${parseFloat(v.price).toFixed(2)}
+                                        </option>`;
+                                    }).join('')}
+                                </select>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="product-price" id="price-${p.id}">₹${parseFloat(defaultVariant?.price || 0).toFixed(2)}</div>
+                                    <div class="product-stock ${defaultStockInfo.isLow ? 'low' : ''}" id="stock-${p.id}">
+                                        ${defaultStockInfo.display}
+                                    </div>
+                                </div>
+                                <button class="btn btn-success" onclick="addToCartFromProduct('${p.id}')" 
+                                    ${!defaultStockInfo.isAvailable ? 'disabled' : ''} id="add-btn-${p.id}">
+                                    <i class="bi bi-cart-plus"></i>
+                                </button>
+                            </div>
+                        ` : `
+                            <div class="text-muted">No variants available</div>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateProductPrice(productId) {
+    const select = document.getElementById(`variant-${productId}`);
+    const option = select.options[select.selectedIndex];
+    const price = option.dataset.price;
+    const stock = parseInt(option.dataset.stock) || 0;
+    const isUnlimited = option.dataset.unlimited === 'true';
+    
+    document.getElementById(`price-${productId}`).textContent = '₹' + parseFloat(price).toFixed(2);
+    
+    const stockEl = document.getElementById(`stock-${productId}`);
+    if (isUnlimited) {
+        stockEl.textContent = 'Unlimited';
+        stockEl.className = 'product-stock';
+    } else {
+        stockEl.textContent = stock > 0 ? stock + ' in stock' : 'Out of stock';
+        stockEl.className = 'product-stock' + (stock > 0 && stock < 5 ? ' low' : '');
+    }
+    
+    const addBtn = document.getElementById(`add-btn-${productId}`);
+    addBtn.disabled = !isUnlimited && stock === 0;
+}
+
+function addToCartFromProduct(productId) {
+    const select = document.getElementById(`variant-${productId}`);
+    const variantId = select.value;
+    addToCart(variantId);
+}
+
+// Store saved addresses
+let savedAddresses = [];
+
+// Load saved addresses for the user
+async function loadSavedAddresses() {
+    try {
+        const response = await API.get('/order/addresses/');
+        savedAddresses = response.data || [];
+        renderSavedAddresses();
+    } catch(e) {
+        console.log('No saved addresses or error loading:', e);
+        savedAddresses = [];
+        document.getElementById('saved-addresses-section').style.display = 'none';
+        document.getElementById('new-address-form').style.display = 'block';
+    }
+}
+
+function renderSavedAddresses() {
+    const container = document.getElementById('saved-addresses-container');
+    const section = document.getElementById('saved-addresses-section');
+    
+    if (savedAddresses.length === 0) {
+        section.style.display = 'none';
+        document.getElementById('new-address-form').style.display = 'block';
+        return;
+    }
+    
+    section.style.display = 'block';
+    document.getElementById('new-address-form').style.display = 'none';
+    document.getElementById('use-new-address').checked = false;
+    
+    container.innerHTML = savedAddresses.map((addr, index) => `
+        <div class="col-12">
+            <div class="card address-card ${index === 0 ? 'border-success' : ''}" 
+                 onclick="selectAddress('${addr.id}')" 
+                 id="addr-card-${addr.id}"
+                 style="cursor: pointer;">
+                <div class="card-body py-2">
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="radio" name="saved-address" 
+                               id="addr-${addr.id}" value="${addr.id}" ${index === 0 ? 'checked' : ''}>
+                        <label class="form-check-label w-100" for="addr-${addr.id}">
+                            <div class="fw-medium">${addr.address_line_1}</div>
+                            <small class="text-muted">
+                                ${addr.address_line_2 ? addr.address_line_2 + ', ' : ''}
+                                ${addr.city}, ${addr.country_area || ''} ${addr.postal_code}
+                            </small>
+                            ${addr.phone ? `<br><small class="text-muted"><i class="bi bi-telephone"></i> ${addr.phone}</small>` : ''}
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    // Select first address by default
+    if (savedAddresses.length > 0) {
+        document.getElementById('selected-address-id').value = savedAddresses[0].id;
+    }
+}
+
+function selectAddress(addressId) {
+    // Update hidden field
+    document.getElementById('selected-address-id').value = addressId;
+    
+    // Update radio buttons
+    document.querySelectorAll('input[name="saved-address"]').forEach(radio => {
+        radio.checked = radio.value === addressId;
+    });
+    
+    // Update card styling
+    document.querySelectorAll('.address-card').forEach(card => {
+        card.classList.remove('border-success');
+    });
+    document.getElementById(`addr-card-${addressId}`)?.classList.add('border-success');
+    
+    // Hide new address form when selecting saved address
+    document.getElementById('use-new-address').checked = false;
+    document.getElementById('new-address-form').style.display = 'none';
+}
+
+function toggleNewAddressForm() {
+    const useNew = document.getElementById('use-new-address').checked;
+    const newForm = document.getElementById('new-address-form');
+    
+    if (useNew) {
+        newForm.style.display = 'block';
+        document.getElementById('selected-address-id').value = '';
+        // Deselect saved addresses
+        document.querySelectorAll('input[name="saved-address"]').forEach(radio => {
+            radio.checked = false;
+        });
+        document.querySelectorAll('.address-card').forEach(card => {
+            card.classList.remove('border-success');
+        });
+    } else {
+        newForm.style.display = 'none';
+        // Re-select first address
+        if (savedAddresses.length > 0) {
+            selectAddress(savedAddresses[0].id);
+        }
+    }
+}
+
+// Show checkout modal
+function showCheckoutModal() {
+    if (!isLoggedIn) {
+        new bootstrap.Modal(document.getElementById('loginModal')).show();
+        return;
+    }
+    
+    if (cart.length === 0) {
+        showAlert(document.getElementById('alert-container'), 'Your cart is empty', 'warning');
+        return;
+    }
+    
+    // Load saved addresses
+    loadSavedAddresses();
+    
+    // Close cart and show checkout modal
+    toggleCart();
+    new bootstrap.Modal(document.getElementById('checkoutModal')).show();
+}
+
+// Store shipping details for later use
+let currentShippingDetails = null;
+let currentShippingAddressId = null;
+let currentOrderPreview = null;
+
+// Checkout form submission - Step 1: Go to payment review
+document.getElementById('checkoutForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const continueBtn = document.getElementById('continue-to-payment-btn');
+    continueBtn.disabled = true;
+    continueBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Loading...';
+    
+    try {
+        // Check if using saved address or new address
+        const selectedAddressId = document.getElementById('selected-address-id').value;
+        const useNewAddress = document.getElementById('use-new-address').checked || !selectedAddressId;
+        
+        if (useNewAddress) {
+            // Validate new address fields
+            const addr1 = document.getElementById('ship-address1').value.trim();
+            const city = document.getElementById('ship-city').value.trim();
+            const state = document.getElementById('ship-state').value.trim();
+            const postal = document.getElementById('ship-postal').value.trim();
+            const phone = document.getElementById('ship-phone').value.trim();
+            
+            if (!addr1 || !city || !state || !postal || !phone) {
+                showAlert(document.getElementById('alert-container'), 'Please fill in all required address fields', 'warning');
+                continueBtn.disabled = false;
+                continueBtn.innerHTML = 'Continue to Payment <i class="bi bi-arrow-right"></i>';
+                return;
+            }
+            
+            // Store new address details
+            currentShippingDetails = {
+                address_line_1: addr1,
+                address_line_2: document.getElementById('ship-address2').value || '',
+                city: city,
+                country_area: state,
+                postal_code: postal,
+                country_code: document.getElementById('ship-country').value,
+                phone: phone
+            };
+            currentShippingAddressId = null;
+        } else {
+            // Using saved address - get the address details from savedAddresses array
+            currentShippingAddressId = selectedAddressId;
+            const savedAddr = savedAddresses.find(a => a.id === selectedAddressId);
+            if (savedAddr) {
+                currentShippingDetails = {
+                    address_line_1: savedAddr.address_line_1 || '',
+                    address_line_2: savedAddr.address_line_2 || '',
+                    city: savedAddr.city || '',
+                    country_area: savedAddr.country_area || '',
+                    postal_code: savedAddr.postal_code || '',
+                    country_code: savedAddr.country_code || 'IN',
+                    phone: savedAddr.phone || ''
+                };
+            } else {
+                showAlert(document.getElementById('alert-container'), 'Please select a valid address', 'warning');
+                continueBtn.disabled = false;
+                continueBtn.innerHTML = 'Continue to Payment <i class="bi bi-arrow-right"></i>';
+                return;
+            }
+        }
+        
+        // Get order preview with discounts
+        const items = cart.map(item => ({
+            product_variant_id: item.variantId,
+            quantity: item.quantity
+        }));
+        
+        const response = await fetch('/api/order/preview/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${TokenManager.getAccessToken()}`
+            },
+            body: JSON.stringify({ items })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            currentOrderPreview = result.data;
+            
+            // Close shipping modal and show payment review
+            bootstrap.Modal.getInstance(document.getElementById('checkoutModal')).hide();
+            setTimeout(() => {
+                showPaymentReview(result.data);
+            }, 300);
+        } else {
+            showAlert(document.getElementById('alert-container'), result.message || 'Failed to load order preview', 'danger');
+        }
+    } catch(e) {
+        console.error('Preview error:', e);
+        showAlert(document.getElementById('alert-container'), 'Error loading order preview', 'danger');
+    } finally {
+        continueBtn.disabled = false;
+        continueBtn.innerHTML = 'Continue to Payment <i class="bi bi-arrow-right"></i>';
+    }
+});
+
+// Show payment review modal
+function showPaymentReview(preview) {
+    const content = document.getElementById('payment-review-content');
+    
+    // Safety check for shipping details
+    const shippingAddr = currentShippingDetails || {
+        address_line_1: 'Address not available',
+        address_line_2: '',
+        city: '',
+        country_area: '',
+        postal_code: '',
+        country_code: '',
+        phone: ''
+    };
+    
+    const itemsHtml = preview.items.map(item => `
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div>
+                <div class="fw-semibold">${item.product_name}</div>
+                <small class="text-muted">${item.variant_name} × ${item.quantity}</small>
+            </div>
+            <div class="text-end">
+                <div>₹${parseFloat(item.total).toFixed(2)}</div>
+                <small class="text-muted">₹${parseFloat(item.unit_price).toFixed(2)} each</small>
+            </div>
+        </div>
+    `).join('');
+    
+    // Build discount explanation first
+    const discountExplanation = preview.discount_explanation ? 
+        `<div class="discount-explanation">
+            <i class="bi bi-info-circle-fill"></i>
+            ${preview.discount_explanation}
+        </div>` : '';
+    
+    // Render discounts with clear stackable/non-stackable indication
+    const discountsHtml = preview.discounts.length > 0 ? 
+        discountExplanation + preview.discounts.map(d => {
+            const isStackable = d.is_stackable;
+            const isApplied = d.is_applied !== false;
+            const notAppliedClass = !isApplied ? 'not-applied' : '';
+            const nonStackableClass = !isStackable ? 'non-stackable' : '';
+            const badgeClass = isStackable ? 'stackable' : 'non-stackable';
+            const badgeText = isStackable ? 'STACKABLE' : 'NON-STACKABLE';
+            const badgeIcon = isStackable ? 'bi-layers-fill' : 'bi-layer-forward';
+            
+            // Determine status text
+            let statusHtml = '';
+            if (!isApplied) {
+                statusHtml = `<span class="badge bg-secondary ms-2">Not Applied</span>`;
+            } else if (isStackable) {
+                statusHtml = `<span class="badge bg-success ms-2">✓ Applied</span>`;
+            } else {
+                statusHtml = `<span class="badge bg-warning text-dark ms-2">✓ Best Value</span>`;
+            }
+            
+            // Show stacking info
+            const stackingInfo = d.stacking_info || (isStackable ? 'Can be combined with other discounts' : 'Only best non-stackable discount applies');
+            
+            // Applied reason for not-applied discounts
+            const appliedReason = d.applied_reason && !isApplied ? 
+                `<div class="mt-2 text-muted small"><i class="bi bi-exclamation-circle"></i> ${d.applied_reason}</div>` : '';
+            
+            return `
+            <div class="discount-item ${notAppliedClass} ${nonStackableClass}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="discount-name">
+                            <i class="bi bi-tag-fill"></i> ${d.rule_name}
+                            <span class="stackable-badge ${badgeClass}">
+                                <i class="bi ${badgeIcon}"></i> ${badgeText}
+                            </span>
+                            ${statusHtml}
+                        </div>
+                        <div class="discount-reason mt-1">${d.reason || d.applies_to}</div>
+                        <div class="mt-1">
+                            <span class="discount-scope">${d.scope_display} Discount</span>
+                            <span class="discount-scope ms-1">${d.discount_type_display || (d.discount_type === 'fix' ? 'Fixed' : 'Percentage')}: ${d.discount_type === 'percentage' ? d.discount_value + '%' : '₹' + d.discount_value}</span>
+                        </div>
+                        <div class="mt-1 small" style="opacity: 0.8;">
+                            <i class="bi bi-lightbulb"></i> ${stackingInfo}
+                        </div>
+                        ${appliedReason}
+                    </div>
+                    <div class="discount-amount text-nowrap ms-3">-₹${parseFloat(d.discount_amount).toFixed(2)}</div>
+                </div>
+            </div>`;
+        }).join('') 
+        : '<p class="text-muted text-center py-3"><i class="bi bi-info-circle"></i> No discounts available for this order</p>';
+    
+    const paymentMethodsHtml = preview.payment_methods.map(pm => `
+        <div class="payment-method-option ${pm.disabled ? 'disabled' : ''} ${pm.id === 'cod' ? 'selected' : ''}" 
+             onclick="${pm.disabled ? '' : `selectPaymentMethod('${pm.id}')`}" 
+             id="pm-${pm.id}">
+            <div class="d-flex align-items-center">
+                <i class="bi ${pm.icon} fs-4 me-3 text-success"></i>
+                <div>
+                    <div class="fw-semibold">${pm.name}</div>
+                    ${pm.disabled ? '<small class="text-muted">Coming soon</small>' : ''}
+                </div>
+                <div class="ms-auto">
+                    ${pm.id === 'cod' ? '<i class="bi bi-check-circle-fill text-success fs-5"></i>' : ''}
+                    ${pm.disabled ? '<i class="bi bi-lock text-muted"></i>' : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-lg-7">
+                <!-- Order Items -->
+                <div class="payment-section">
+                    <div class="payment-section-header">
+                        <i class="bi bi-bag text-success"></i> Order Items (${preview.items.length})
+                    </div>
+                    <div class="payment-section-body">
+                        ${itemsHtml}
+                    </div>
+                </div>
+                
+                <!-- Discounts Applied -->
+                <div class="payment-section">
+                    <div class="payment-section-header">
+                        <i class="bi bi-percent text-success"></i> Discounts & Offers
+                    </div>
+                    <div class="payment-section-body">
+                        ${discountsHtml}
+                    </div>
+                </div>
+                
+                <!-- Shipping Address -->
+                <div class="payment-section">
+                    <div class="payment-section-header">
+                        <i class="bi bi-geo-alt text-success"></i> Shipping Address
+                    </div>
+                    <div class="payment-section-body">
+                        <p class="mb-0">
+                            ${shippingAddr.address_line_1}${shippingAddr.address_line_2 ? ', ' + shippingAddr.address_line_2 : ''}<br>
+                            ${shippingAddr.city}, ${shippingAddr.country_area} ${shippingAddr.postal_code}<br>
+                            ${shippingAddr.country_code}<br>
+                            <i class="bi bi-telephone"></i> ${shippingAddr.phone}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-5">
+                <!-- Payment Method -->
+                <div class="payment-section">
+                    <div class="payment-section-header">
+                        <i class="bi bi-credit-card text-success"></i> Payment Method
+                    </div>
+                    <div class="payment-section-body">
+                        ${paymentMethodsHtml}
+                    </div>
+                </div>
+                
+                <!-- Payment Summary -->
+                <div class="payment-section">
+                    <div class="payment-section-header">
+                        <i class="bi bi-calculator text-success"></i> Payment Summary
+                    </div>
+                    <div class="payment-section-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal</span>
+                            <span>₹${parseFloat(preview.subtotal).toFixed(2)}</span>
+                        </div>
+                        ${preview.discounts.filter(d => d.is_applied !== false).map(d => `
+                            <div class="d-flex justify-content-between mb-2 text-success">
+                                <span><i class="bi bi-tag"></i> ${d.rule_name}</span>
+                                <span>-₹${parseFloat(d.discount_amount).toFixed(2)}</span>
+                            </div>
+                        `).join('')}
+                        ${parseFloat(preview.total_discount) > 0 ? `
+                            <div class="d-flex justify-content-between mb-2 text-success fw-semibold">
+                                <span>Total Savings</span>
+                                <span>-₹${parseFloat(preview.total_discount).toFixed(2)}</span>
+                            </div>
+                        ` : ''}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tax</span>
+                            <span>₹${parseFloat(preview.tax).toFixed(2)}</span>
+                        </div>
+                        <hr>
+                        <div class="payment-total-box mt-3">
+                            <div class="small opacity-75">Total Amount</div>
+                            <div class="payment-total-amount">₹${parseFloat(preview.final_amount).toFixed(2)}</div>
+                            ${parseFloat(preview.total_discount) > 0 ? `
+                                <div class="small mt-1"><i class="bi bi-gift"></i> You save ₹${parseFloat(preview.total_discount).toFixed(2)} on this order!</div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('paymentReviewModal')).show();
+}
+
+// Select payment method
+function selectPaymentMethod(methodId) {
+    document.querySelectorAll('.payment-method-option').forEach(el => {
+        el.classList.remove('selected');
+        el.querySelector('.bi-check-circle-fill')?.remove();
+    });
+    const selected = document.getElementById('pm-' + methodId);
+    selected.classList.add('selected');
+    selected.querySelector('.ms-auto').innerHTML = '<i class="bi bi-check-circle-fill text-success fs-5"></i>';
+}
+
+// Back to shipping
+function backToShipping() {
+    bootstrap.Modal.getInstance(document.getElementById('paymentReviewModal')).hide();
+    setTimeout(() => {
+        new bootstrap.Modal(document.getElementById('checkoutModal')).show();
+    }, 300);
+}
+
+// Confirm and place order
+async function confirmOrder() {
+    const confirmBtn = document.getElementById('confirm-order-btn');
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Placing Order...';
+    
+    try {
+        const items = cart.map(item => ({
+            product_variant_id: item.variantId,
+            quantity: item.quantity
+        }));
+        
+        // Build checkout payload - either use saved address ID or new address
+        const checkoutPayload = { items };
+        if (currentShippingAddressId) {
+            checkoutPayload.shipping_address_id = currentShippingAddressId;
+        } else if (currentShippingDetails) {
+            checkoutPayload.shipping_address = currentShippingDetails;
+        }
+        
+        const response = await fetch('/api/order/checkout/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${TokenManager.getAccessToken()}`
+            },
+            body: JSON.stringify(checkoutPayload)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            cart = [];
+            localStorage.removeItem('cart');
+            updateCartUI();
+            bootstrap.Modal.getInstance(document.getElementById('paymentReviewModal')).hide();
+            
+            // Show success with order details
+            showOrderSuccess(result.data);
+        } else {
+            const errorMsg = result.errors?.fields ? JSON.stringify(result.errors.fields) : (result.message || 'Failed to place order');
+            showAlert(document.getElementById('alert-container'), errorMsg, 'danger');
+        }
+    } catch(e) {
+        console.error('Checkout error:', e);
+        showAlert(document.getElementById('alert-container'), 'Error placing order', 'danger');
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="bi bi-check-circle"></i> Confirm & Place Order';
+    }
+}
+
+// Show order success
+function showOrderSuccess(order) {
+    const content = document.getElementById('order-detail-content');
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="mb-4">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+            </div>
+            <h3 class="text-success mb-3">Order Placed Successfully!</h3>
+            <p class="text-muted mb-4">Thank you for your order. We'll send you a confirmation email shortly.</p>
+            
+            <div class="bg-light rounded p-4 mb-4">
+                <div class="row text-start">
+                    <div class="col-6 mb-3">
+                        <div class="text-muted small">Order Number</div>
+                        <div class="fw-bold fs-5">#${order.order_number}</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="text-muted small">Order Status</div>
+                        <span class="badge bg-success">${order.order_status}</span>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Total Amount</div>
+                        <div class="fw-bold text-success fs-5">₹${parseFloat(order.total_payable_amount).toFixed(2)}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small">Payment Mode</div>
+                        <div class="fw-semibold">Cash on Delivery</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-outline-success" onclick="viewOrderDetails('${order.id}')">
+                    <i class="bi bi-receipt"></i> View Order Details
+                </button>
+                <button class="btn btn-success" onclick="closeAndContinueShopping()">
+                    <i class="bi bi-bag"></i> Continue Shopping
+                </button>
+            </div>
+        </div>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('orderDetailModal')).show();
+    loadProducts(); // Reload inventory
+}
+
+// Close modal and continue shopping
+function closeAndContinueShopping() {
+    bootstrap.Modal.getInstance(document.getElementById('orderDetailModal')).hide();
+    showSection('products');
+}
+
+// Load user profile
+async function loadProfile() {
+    const container = document.getElementById('profile-content');
+    container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-success"></div></div>';
+    
+    try {
+        const response = await fetch('/api/auth/profile/', {
+            headers: {
+                'Authorization': `Bearer ${TokenManager.getAccessToken()}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success || !result.data) {
+            container.innerHTML = '<div class="text-center py-4 text-danger"><i class="bi bi-exclamation-circle fs-1"></i><p>Failed to load profile</p></div>';
+            return;
+        }
+        
+        const user = result.data;
+        
+        container.innerHTML = `
+            <form id="profileForm">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="profile-first-name" value="${user.first_name || ''}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="profile-last-name" value="${user.last_name || ''}" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" value="${user.email}" disabled>
+                        <small class="text-muted">Email cannot be changed</small>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Role</label>
+                        <input type="text" class="form-control" value="${(user.role || 'customer').charAt(0).toUpperCase() + (user.role || 'customer').slice(1)}" disabled>
+                    </div>
+                    <div class="col-12">
+                        <div class="d-flex gap-2">
+                            ${user.is_loyalty_member ? '<span class="badge bg-warning text-dark"><i class="bi bi-star-fill"></i> Loyalty Member</span>' : ''}
+                            <span class="badge ${user.is_active ? 'bg-success' : 'bg-secondary'}">${user.is_active ? 'Active' : 'Inactive'}</span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <hr>
+                        <h6>Change Password</h6>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="profile-old-password" placeholder="Enter current password">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="profile-new-password" placeholder="Enter new password" minlength="8">
+                        <small class="text-muted">Leave blank to keep current password</small>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-lg"></i> Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        `;
+        
+        // Handle profile form submit
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                first_name: document.getElementById('profile-first-name').value,
+                last_name: document.getElementById('profile-last-name').value
+            };
+            
+            const newPassword = document.getElementById('profile-new-password').value;
+            const oldPassword = document.getElementById('profile-old-password').value;
+            
+            if (newPassword) {
+                if (!oldPassword) {
+                    showAlert(document.getElementById('alert-container'), 'Please enter your current password', 'warning');
+                    return;
+                }
+                data.old_password = oldPassword;
+                data.password = newPassword;
+            }
+            
+            try {
+                const updateRes = await fetch('/api/auth/profile/', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${TokenManager.getAccessToken()}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const updateResult = await updateRes.json();
+                
+                if (updateResult.success) {
+                    // Update stored user info
+                    TokenManager.setUser(updateResult.data);
+                    document.getElementById('user-name').textContent = updateResult.data.full_name || updateResult.data.first_name;
+                    showAlert(document.getElementById('alert-container'), 'Profile updated successfully', 'success');
+                    // Clear password fields
+                    document.getElementById('profile-old-password').value = '';
+                    document.getElementById('profile-new-password').value = '';
+                } else {
+                    showAlert(document.getElementById('alert-container'), updateResult.message || 'Failed to update profile', 'danger');
+                }
+            } catch (err) {
+                console.error('Profile update error:', err);
+                showAlert(document.getElementById('alert-container'), 'Error updating profile', 'danger');
+            }
+        });
+        
+    } catch (e) {
+        console.error('Load profile error:', e);
+        container.innerHTML = '<div class="text-center py-4 text-danger"><i class="bi bi-exclamation-circle fs-1"></i><p>Error loading profile</p></div>';
+    }
+}
+
+// Customer orders pagination state
+let customerOrdersPage = 1;
+let customerOrdersTotalPages = 1;
+
+// Load orders
+async function loadOrders() {
+    loadOrdersPage(1);
+}
+
+async function loadOrdersPage(page = 1) {
+    if (page < 1) return;
+    customerOrdersPage = page;
+    
+    const container = document.getElementById('orders-container');
+    const pagination = document.getElementById('orders-pagination');
+    
+    container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-success"></div></div>';
+    
+    try {
+        const response = await fetch(`/api/order/?page=${page}&page_size=5`, {
+            headers: {
+                'Authorization': `Bearer ${TokenManager.getAccessToken()}`
+            }
+        });
+        
+        const result = await response.json();
+        const orders = extractDataArray(result);
+        const paginationData = extractPagination(result);
+        
+        customerOrdersTotalPages = paginationData.total_pages;
+        
+        if (orders.length === 0 && page === 1) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-bag-x"></i>
+                    <h5>No orders yet</h5>
+                    <p>Start shopping to place your first order!</p>
+                    <button class="btn btn-success" onclick="showSection('products')">
+                        <i class="bi bi-shop"></i> Browse Products
+                    </button>
+                </div>
+            `;
+            pagination.style.display = 'none';
+            return;
+        }
+        
+        container.innerHTML = orders.map(order => `
+            <div class="order-card">
+                <div class="order-header">
+                    <div>
+                        <strong>Order #${order.order_number || order.id.slice(0, 8)}</strong>
+                        <small class="text-muted d-block">${new Date(order.created_at).toLocaleDateString('en-IN', { 
+                            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        })}</small>
+                    </div>
+                    <span class="order-status ${order.order_status}">${order.order_status || 'created'}</span>
+                </div>
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <small class="text-muted">Items: ${order.items_count || order.items?.length || '-'}</small>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <button class="btn btn-sm btn-outline-success" onclick="viewOrderDetails('${order.id}')">
+                            <i class="bi bi-eye"></i> View Details
+                        </button>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="text-muted small">Total</div>
+                        <strong class="text-success fs-5">${formatCurrency(order.total_payable_amount || order.final_amount || order.subtotal)}</strong>
+                        ${order.discount_amount && parseFloat(order.discount_amount) > 0 ? `<small class="text-success d-block">Saved ${formatCurrency(order.discount_amount)}</small>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        // Update pagination UI
+        document.getElementById('orders-page-info').textContent = `Page ${page} of ${customerOrdersTotalPages} (${paginationData.total_count} total orders)`;
+        document.getElementById('orders-current').textContent = `${page} / ${customerOrdersTotalPages}`;
+        
+        // Show/hide pagination and update button states
+        if (customerOrdersTotalPages > 1) {
+            pagination.style.display = 'block';
+            document.getElementById('orders-prev').classList.toggle('disabled', page <= 1);
+            document.getElementById('orders-next').classList.toggle('disabled', page >= customerOrdersTotalPages);
+        } else {
+            pagination.style.display = 'none';
+        }
+        
+    } catch(e) {
+        console.error('Load orders error:', e);
+        container.innerHTML = '<div class="text-center text-danger">Error loading orders</div>';
+    }
+}
+
+// View order details
+async function viewOrderDetails(orderId) {
+    const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+    const content = document.getElementById('order-detail-content');
+    
+    content.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-success"></div>
+            <p class="mt-2 text-muted">Loading order details...</p>
+        </div>
+    `;
+    modal.show();
+    
+    try {
+        const response = await fetch(`/api/order/${orderId}/`, {
+            headers: {
+                'Authorization': `Bearer ${TokenManager.getAccessToken()}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success || !result.data) {
+            content.innerHTML = '<div class="text-center text-danger py-4"><i class="bi bi-exclamation-circle fs-1"></i><p>Failed to load order details</p></div>';
+            return;
+        }
+        
+        const order = result.data;
+        const items = order.order_items || [];
+        const address = order.shipping_address_details;
+        
+        content.innerHTML = `
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-1">Order Number</h6>
+                    <strong class="fs-5">#${order.order_number}</strong>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h6 class="text-muted mb-1">Status</h6>
+                    <span class="order-status ${order.order_status}">${order.order_status}</span>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-1">Order Date</h6>
+                    <span>${new Date(order.created_at).toLocaleDateString('en-IN', { 
+                        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                    })}</span>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h6 class="text-muted mb-1">Payment Status</h6>
+                    <span class="badge ${order.payment_status === 'paid' ? 'bg-success' : 'bg-warning'}">${order.payment_status}</span>
+                </div>
+            </div>
+            
+            ${address ? `
+            <div class="mb-4 p-3 bg-light rounded">
+                <h6 class="mb-2"><i class="bi bi-geo-alt text-success"></i> Shipping Address</h6>
+                <p class="mb-0">${address.address_line_1}${address.address_line_2 ? ', ' + address.address_line_2 : ''}<br>
+                ${address.city}, ${address.postal_code}<br>
+                ${address.country}</p>
+            </div>
+            ` : ''}
+            
+            <h6 class="mb-3"><i class="bi bi-box-seam text-success"></i> Order Items</h6>
+            <div class="border rounded">
+                ${items.map(item => `
+                    <div class="order-item px-3">
+                        <div>
+                            <div class="order-item-name">${item.product_name || 'Product'}</div>
+                            <div class="order-item-variant">${item.variant_name || ''}</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="order-item-qty">${item.quantity} x ${formatCurrency(item.unit_rate)}</div>
+                            <strong>${formatCurrency(item.amount)}</strong>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div class="order-summary">
+                <div class="order-summary-row">
+                    <span>Subtotal</span>
+                    <span>${formatCurrency(order.subtotal)}</span>
+                </div>
+                ${parseFloat(order.discount_amount) > 0 && order.discount_breakdown ? `
+                    ${order.discount_breakdown.distribution.map(dist => 
+                        dist.discounts.map(d => `
+                            <div class="order-summary-row text-success">
+                                <span><i class="bi bi-tag"></i> ${d.rule_name} <small class="text-muted">(${dist.scope_display})</small></span>
+                                <span>-${formatCurrency(d.amount)}</span>
+                            </div>
+                        `).join('')
+                    ).join('')}
+                    ${order.discount_breakdown.applied_count > 1 ? `
+                    <div class="order-summary-row text-success border-top pt-2">
+                        <span><strong><i class="bi bi-percent"></i> Total Discount</strong></span>
+                        <span><strong>-${formatCurrency(order.discount_amount)}</strong></span>
+                    </div>
+                    ` : ''}
+                ` : parseFloat(order.discount_amount) > 0 ? `
+                <div class="order-summary-row text-success">
+                    <span><i class="bi bi-tag"></i> Discount</span>
+                    <span>-${formatCurrency(order.discount_amount)}</span>
+                </div>
+                ` : ''}
+                ${parseFloat(order.total_payable_tax) > 0 ? `
+                <div class="order-summary-row">
+                    <span>Tax</span>
+                    <span>${formatCurrency(order.total_payable_tax)}</span>
+                </div>
+                ` : ''}
+                <div class="order-summary-row total text-success">
+                    <span>Total</span>
+                    <span>${formatCurrency(order.total_payable_amount)}</span>
+                </div>
+            </div>
+        `;
+        
+    } catch(e) {
+        console.error('Load order details error:', e);
+        content.innerHTML = '<div class="text-center text-danger py-4"><i class="bi bi-exclamation-circle fs-1"></i><p>Error loading order details</p></div>';
+    }
+}
+
+// Logout
+function logout() {
+    TokenManager.clearTokens();
+    localStorage.removeItem('cart');
+    window.location.href = URLS.customerLogin;
+}
+
+// Initialize
+updateCartUI();
+loadProducts();
+
+// Search on enter - apply backend filters
+document.getElementById('search-input').addEventListener('keyup', function(e) {
+    if (e.key === 'Enter') applyBackendFilters();
+});
+</script>
+{% endblock %}

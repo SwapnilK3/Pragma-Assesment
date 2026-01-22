@@ -1,0 +1,2449 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - Pragma E-Commerce{% endblock %}
+
+{% block extra_css %}
+<style>
+    body { background-color: #1a1a2e; color: #eee; }
+    
+    /* Sidebar */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 260px;
+        background: linear-gradient(180deg, #16213e 0%, #0f0f1a 100%);
+        padding-top: 20px;
+        z-index: 1000;
+        border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    .sidebar .brand {
+        color: #dc3545;
+        font-size: 1.5rem;
+        font-weight: bold;
+        padding: 0 20px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .sidebar .nav-link {
+        color: rgba(255,255,255,0.6);
+        padding: 12px 20px;
+        border-left: 3px solid transparent;
+        transition: all 0.2s;
+    }
+    .sidebar .nav-link:hover {
+        background: rgba(220,53,69,0.1);
+        color: white;
+    }
+    .sidebar .nav-link.active {
+        background: rgba(220,53,69,0.2);
+        color: #dc3545;
+        border-left-color: #dc3545;
+    }
+    .sidebar .nav-link i { margin-right: 10px; width: 20px; text-align: center; }
+    .sidebar .nav-section {
+        color: rgba(255,255,255,0.4);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        padding: 20px 20px 10px;
+        letter-spacing: 1px;
+    }
+    
+    /* Main Content */
+    .main-content {
+        margin-left: 260px;
+        padding: 20px;
+        min-height: 100vh;
+        background: #1a1a2e;
+    }
+    
+    /* Top Bar */
+    .top-bar {
+        background: #16213e;
+        padding: 15px 25px;
+        margin: -20px -20px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .top-bar h4 { color: #fff; }
+    
+    /* Cards */
+    .data-card {
+        background: #16213e;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.1);
+        margin-bottom: 20px;
+    }
+    .data-card .card-header {
+        background: none;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #fff;
+    }
+    .data-card .card-body { padding: 20px; }
+    
+    /* Tables */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        color: #ddd;
+    }
+    .data-table th {
+        background: rgba(0,0,0,0.2);
+        padding: 12px 15px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: #aaa;
+        text-transform: uppercase;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .data-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        vertical-align: middle;
+    }
+    .data-table tr:hover { background: rgba(255,255,255,0.03); }
+    
+    /* Badges */
+    .badge-active { background: #198754; }
+    .badge-inactive { background: #6c757d; }
+    .badge-admin { background: #dc3545; }
+    .badge-staff { background: #fd7e14; }
+    .badge-customer { background: #198754; }
+    
+    /* Filter Bar */
+    .filter-bar {
+        background: rgba(0,0,0,0.2);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .filter-bar .form-control, .filter-bar .form-select {
+        background: #16213e;
+        border-color: rgba(255,255,255,0.1);
+        color: #fff;
+    }
+    .filter-bar .form-control::placeholder { color: rgba(255,255,255,0.4); }
+    .filter-bar .form-control:focus, .filter-bar .form-select:focus {
+        background: #16213e;
+        border-color: #dc3545;
+        color: #fff;
+        box-shadow: 0 0 0 0.2rem rgba(220,53,69,0.25);
+    }
+    
+    /* Modal Dark Theme */
+    .modal-content {
+        background: #16213e;
+        border: 1px solid rgba(255,255,255,0.1);
+        color: #fff;
+    }
+    .modal-header { border-bottom-color: rgba(255,255,255,0.1); }
+    .modal-footer { border-top-color: rgba(255,255,255,0.1); }
+    .modal .form-control, .modal .form-select {
+        background: #1a1a2e;
+        border-color: rgba(255,255,255,0.2);
+        color: #fff;
+    }
+    .modal .form-control:focus, .modal .form-select:focus {
+        background: #1a1a2e;
+        border-color: #dc3545;
+        color: #fff;
+    }
+    .modal .form-label { color: #aaa; }
+    .btn-close { filter: invert(1); }
+    
+    /* Stats */
+    .stat-card {
+        background: #16213e;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .stat-card .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    .stat-card .stat-value { font-size: 1.75rem; font-weight: bold; color: #fff; }
+    .stat-card .stat-label { color: #888; font-size: 0.875rem; }
+    
+    /* Section */
+    .section { display: none; }
+    .section.active { display: block; }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+    .empty-state i { font-size: 4rem; margin-bottom: 20px; opacity: 0.3; }
+    
+    /* Role Toggle */
+    .role-select-btns .btn {
+        min-width: 100px;
+    }
+    .role-select-btns .btn.active {
+        box-shadow: 0 0 0 3px rgba(220,53,69,0.5);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="brand">
+        <i class="bi bi-shield-lock-fill"></i> Admin Panel
+    </div>
+    
+    <div class="nav-section">Overview</div>
+    <nav class="nav flex-column">
+        <a class="nav-link active" href="#" data-section="dashboard">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+    </nav>
+    
+    <div class="nav-section">User Management</div>
+    <nav class="nav flex-column">
+        <a class="nav-link" href="#" data-section="users">
+            <i class="bi bi-people"></i> All Users
+        </a>
+        <a class="nav-link" href="#" data-section="staff">
+            <i class="bi bi-person-badge"></i> Staff Members
+        </a>
+    </nav>
+    
+    <div class="nav-section">Discounts</div>
+    <nav class="nav flex-column">
+        <a class="nav-link" href="#" data-section="discount-rules">
+            <i class="bi bi-percent"></i> Discount Rules
+        </a>
+        <a class="nav-link" href="#" data-section="applied-discounts">
+            <i class="bi bi-check2-circle"></i> Applied Discounts
+        </a>
+    </nav>
+    
+    <div class="nav-section">Orders</div>
+    <nav class="nav flex-column">
+        <a class="nav-link" href="#" data-section="orders">
+            <i class="bi bi-bag-check"></i> All Orders
+        </a>
+    </nav>
+    
+    <div class="nav-section">Reports</div>
+    <nav class="nav flex-column">
+        <a class="nav-link" href="#" data-section="reports">
+            <i class="bi bi-graph-up"></i> Analytics
+        </a>
+    </nav>
+    
+    <div class="mt-auto p-3" style="position: absolute; bottom: 0; width: 100%;">
+        <div class="text-white-50 small mb-2">Administrator:</div>
+        <div class="text-white" id="userInfo">Loading...</div>
+        <button class="btn btn-outline-danger btn-sm mt-2 w-100" onclick="logout()">
+            <i class="bi bi-box-arrow-left"></i> Logout
+        </button>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <h4 class="mb-0" id="sectionTitle">Dashboard</h4>
+        <div id="sectionActions"></div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alert-container"></div>
+
+    <!-- Dashboard Section -->
+    <div id="section-dashboard" class="section active">
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-danger bg-opacity-25 text-danger me-3">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <div>
+                            <div class="stat-value" id="stat-users">-</div>
+                            <div class="stat-label">Total Users</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning bg-opacity-25 text-warning me-3">
+                            <i class="bi bi-person-badge"></i>
+                        </div>
+                        <div>
+                            <div class="stat-value" id="stat-staff">-</div>
+                            <div class="stat-label">Staff Members</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-success bg-opacity-25 text-success me-3">
+                            <i class="bi bi-bag-check"></i>
+                        </div>
+                        <div>
+                            <div class="stat-value" id="stat-orders">-</div>
+                            <div class="stat-label">Total Orders</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-info bg-opacity-25 text-info me-3">
+                            <i class="bi bi-percent"></i>
+                        </div>
+                        <div>
+                            <div class="stat-value" id="stat-discounts">-</div>
+                            <div class="stat-label">Active Discounts</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="data-card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Recent Users</h6>
+                        <a href="#" class="btn btn-sm btn-outline-light" data-section="users">View All</a>
+                    </div>
+                    <div class="card-body" id="recent-users">
+                        <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-light"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="data-card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Active Discount Rules</h6>
+                        <a href="#" class="btn btn-sm btn-outline-light" data-section="discount-rules">View All</a>
+                    </div>
+                    <div class="card-body" id="active-discounts">
+                        <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-light"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Section -->
+    <div id="section-users" class="section">
+        <div class="filter-bar">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="user-search" placeholder="Search by email or name...">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="user-role-filter">
+                        <option value="">All Roles</option>
+                        <option value="customer">Customer</option>
+                        <option value="staff">Staff</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="user-status-filter">
+                        <option value="">All Status</option>
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-danger" onclick="showUserForm()">
+                        <i class="bi bi-plus-lg"></i> Add User
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="data-card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Loyalty</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody">
+                            <tr><td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Section -->
+    <div id="section-staff" class="section">
+        <div class="filter-bar">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" id="staff-search" placeholder="Search staff...">
+                </div>
+                <div class="col-md-6 text-end">
+                    <button class="btn btn-warning" onclick="showUserForm('staff')">
+                        <i class="bi bi-plus-lg"></i> Add Staff Member
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="data-card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staff-tbody">
+                            <tr><td colspan="5" class="text-center py-4"><div class="spinner-border spinner-border-sm"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Discount Rules Section -->
+    <div id="section-discount-rules" class="section">
+        <div class="filter-bar">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="discount-search" placeholder="Search discounts...">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="discount-scope-filter">
+                        <option value="">All Scopes</option>
+                        <option value="order">Order</option>
+                        <option value="category">Category</option>
+                        <option value="item">Item</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="discount-type-filter">
+                        <option value="">All Types</option>
+                        <option value="percentage">Percentage</option>
+                        <option value="fix">Fixed Amount</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="discount-status-filter">
+                        <option value="">All Status</option>
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button class="btn btn-danger" onclick="showDiscountRuleForm()">
+                        <i class="bi bi-plus-lg"></i> Add Discount Rule
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="data-card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Scope</th>
+                                <th>Type</th>
+                                <th>Value</th>
+                                <th>Min Order</th>
+                                <th>Stackable</th>
+                                <th>Loyalty</th>
+                                <th>Status</th>
+                                <th>Validity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="discount-rules-tbody">
+                            <tr><td colspan="10" class="text-center py-4"><div class="spinner-border spinner-border-sm"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applied Discounts Section -->
+    <div id="section-applied-discounts" class="section">
+        <div class="filter-bar">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" id="applied-search" placeholder="Search by order number or rule name...">
+                </div>
+            </div>
+        </div>
+        
+        <div class="data-card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Discount Rule</th>
+                                <th>Scope</th>
+                                <th>Amount Saved</th>
+                                <th>Applied At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="applied-discounts-tbody">
+                            <tr><td colspan="5" class="text-center py-4"><div class="spinner-border spinner-border-sm"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center p-3 border-top" id="applied-discounts-pagination-container" style="display:none !important;">
+                    <div class="text-muted" id="applied-discounts-pagination-info">Showing 0 discounts</div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item" id="applied-discounts-prev-page">
+                                <a class="page-link" href="#" onclick="loadAppliedDiscountsPage(appliedDiscountsCurrentPage - 1); return false;">
+                                    <i class="bi bi-chevron-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="page-item active">
+                                <span class="page-link" id="applied-discounts-current-page">1</span>
+                            </li>
+                            <li class="page-item" id="applied-discounts-next-page">
+                                <a class="page-link" href="#" onclick="loadAppliedDiscountsPage(appliedDiscountsCurrentPage + 1); return false;">
+                                    Next <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Section -->
+    <div id="section-orders" class="section">
+        <div class="filter-bar">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="order-search" placeholder="Search orders...">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="order-status-filter">
+                        <option value="">All Status</option>
+                        <option value="created">Created</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="processing">Processing</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="data-card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Status</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Discount</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-tbody">
+                            <tr><td colspan="8" class="text-center py-4"><div class="spinner-border spinner-border-sm"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center p-3 border-top" id="orders-pagination-container" style="display:none !important;">
+                    <div class="text-muted" id="orders-pagination-info">Showing 0 orders</div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item" id="orders-prev-page">
+                                <a class="page-link" href="#" onclick="loadOrdersPage(ordersCurrentPage - 1); return false;">
+                                    <i class="bi bi-chevron-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="page-item active">
+                                <span class="page-link" id="orders-current-page">1</span>
+                            </li>
+                            <li class="page-item" id="orders-next-page">
+                                <a class="page-link" href="#" onclick="loadOrdersPage(ordersCurrentPage + 1); return false;">
+                                    Next <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Section -->
+    <div id="section-reports" class="section">
+        <!-- Section Header with Description -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-1"><i class="bi bi-graph-up-arrow me-2"></i>Analytics & Reports</h4>
+                        <p class="text-muted mb-0">Comprehensive overview of your store's performance metrics and order statistics</p>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">Last updated: <span id="report-last-updated">--</span></small>
+                        <br>
+                        <button class="btn btn-sm btn-outline-secondary mt-1" onclick="loadReports()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="data-card h-100">
+                    <div class="card-header py-2" style="background: rgba(40,167,69,0.1); border-bottom: 2px solid #28a745;">
+                        <small class="text-uppercase fw-bold text-success"><i class="bi bi-currency-rupee me-1"></i>Total Revenue</small>
+                    </div>
+                    <div class="card-body text-center py-4">
+                        <h2 class="text-success mb-2" id="report-total-sales">₹0.00</h2>
+                        <p class="text-muted mb-1 small">Sum of all order amounts (after discounts)</p>
+                        <span class="badge bg-success bg-opacity-25 text-success" id="report-sales-trend">
+                            <i class="bi bi-info-circle me-1"></i>All time earnings
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="data-card h-100">
+                    <div class="card-header py-2" style="background: rgba(13,110,253,0.1); border-bottom: 2px solid #0d6efd;">
+                        <small class="text-uppercase fw-bold text-primary"><i class="bi bi-bag-check me-1"></i>Total Orders</small>
+                    </div>
+                    <div class="card-body text-center py-4">
+                        <h2 class="text-primary mb-2" id="report-total-orders">0</h2>
+                        <p class="text-muted mb-1 small">Number of orders placed by customers</p>
+                        <span class="badge bg-primary bg-opacity-25 text-primary" id="report-completed-orders">
+                            <i class="bi bi-check-circle me-1"></i>0 delivered
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="data-card h-100">
+                    <div class="card-header py-2" style="background: rgba(13,202,240,0.1); border-bottom: 2px solid #0dcaf0;">
+                        <small class="text-uppercase fw-bold text-info"><i class="bi bi-receipt me-1"></i>Avg Order Value</small>
+                    </div>
+                    <div class="card-body text-center py-4">
+                        <h2 class="text-info mb-2" id="report-avg-order">₹0.00</h2>
+                        <p class="text-muted mb-1 small">Average amount spent per order</p>
+                        <span class="badge bg-info bg-opacity-25 text-info" id="report-median-order">
+                            <i class="bi bi-calculator me-1"></i>Median: ₹0.00
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="data-card h-100">
+                    <div class="card-header py-2" style="background: rgba(255,193,7,0.1); border-bottom: 2px solid #ffc107;">
+                        <small class="text-uppercase fw-bold text-warning"><i class="bi bi-percent me-1"></i>Total Discounts</small>
+                    </div>
+                    <div class="card-body text-center py-4">
+                        <h2 class="text-warning mb-2" id="report-total-discounts">₹0.00</h2>
+                        <p class="text-muted mb-1 small">Total discount amount given to customers</p>
+                        <span class="badge bg-warning bg-opacity-25 text-warning" id="report-discount-percent">
+                            <i class="bi bi-tag me-1"></i>0% of subtotal
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-8">
+                <div class="data-card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>Sales Trend</h6>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary active" onclick="updateSalesChart('7days')">7 Days</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="updateSalesChart('30days')">30 Days</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="updateSalesChart('all')">All Time</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="salesTrendChart" height="280"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="data-card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Order Status Distribution</h6>
+                    </div>
+                    <div class="card-body d-flex align-items-center justify-content-center">
+                        <canvas id="orderStatusChart" height="250"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Second Charts Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="data-card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-credit-card me-2"></i>Payment Status Overview</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="paymentStatusChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="data-card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Daily Orders (Last 7 Days)</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="dailyOrdersChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Top Items & Recent Activity -->
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="data-card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-trophy me-2"></i>Top Performing Orders</h6>
+                        <small class="text-muted" id="top-orders-info">Loading...</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Customer</th>
+                                        <th>Amount</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="top-orders-table">
+                                    <tr><td colspan="4" class="text-center text-muted">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Pagination -->
+                        <nav class="mt-3" id="top-orders-pagination" style="display:none;">
+                            <ul class="pagination pagination-sm justify-content-center mb-0">
+                                <li class="page-item" id="top-orders-prev">
+                                    <a class="page-link" href="#" onclick="loadTopOrders(topOrdersPage - 1); return false;">Previous</a>
+                                </li>
+                                <li class="page-item active">
+                                    <span class="page-link" id="top-orders-page-info">1</span>
+                                </li>
+                                <li class="page-item" id="top-orders-next">
+                                    <a class="page-link" href="#" onclick="loadTopOrders(topOrdersPage + 1); return false;">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="data-card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Activity</h6>
+                        <small class="text-muted" id="recent-activity-info">Loading...</small>
+                    </div>
+                    <div class="card-body">
+                        <div id="recent-activity-list" style="max-height: 280px; overflow-y: auto;">
+                            <div class="text-center text-muted py-4">Loading...</div>
+                        </div>
+                        <!-- Pagination -->
+                        <nav class="mt-3" id="recent-activity-pagination" style="display:none;">
+                            <ul class="pagination pagination-sm justify-content-center mb-0">
+                                <li class="page-item" id="recent-activity-prev">
+                                    <a class="page-link" href="#" onclick="loadRecentActivity(recentActivityPage - 1); return false;">Previous</a>
+                                </li>
+                                <li class="page-item active">
+                                    <span class="page-link" id="recent-activity-page-info">1</span>
+                                </li>
+                                <li class="page-item" id="recent-activity-next">
+                                    <a class="page-link" href="#" onclick="loadRecentActivity(recentActivityPage + 1); return false;">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Summary Stats Row -->
+        <div class="row g-4 mt-2">
+            <div class="col-12">
+                <div class="data-card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-clipboard-data me-2"></i>Orders by Status (Count)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 text-center">
+                            <div class="col-md-2 col-6">
+                                <div class="border rounded p-3" style="border-color: rgba(255,255,255,0.1)!important;">
+                                    <small class="text-muted d-block mb-1">Pending</small>
+                                    <h4 class="text-warning mb-0" id="stat-pending-orders">0</h4>
+                                    <small class="text-warning">orders</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-6">
+                                <div class="border rounded p-3" style="border-color: rgba(255,255,255,0.1)!important;">
+                                    <small class="text-muted d-block mb-1">Processing</small>
+                                    <h4 class="text-info mb-0" id="stat-processing-orders">0</h4>
+                                    <small class="text-info">orders</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-6">
+                                <div class="border rounded p-3" style="border-color: rgba(255,255,255,0.1)!important;">
+                                    <small class="text-muted d-block mb-1">Shipped</small>
+                                    <h4 class="text-primary mb-0" id="stat-shipped-orders">0</h4>
+                                    <small class="text-primary">orders</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-6">
+                                <div class="border rounded p-3" style="border-color: rgba(255,255,255,0.1)!important;">
+                                    <small class="text-muted d-block mb-1">Delivered</small>
+                                    <h4 class="text-success mb-0" id="stat-delivered-orders">0</h4>
+                                    <small class="text-success">orders</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-6">
+                                <div class="border rounded p-3" style="border-color: rgba(255,255,255,0.1)!important;">
+                                    <small class="text-muted d-block mb-1">Cancelled</small>
+                                    <h4 class="text-danger mb-0" id="stat-cancelled-orders">0</h4>
+                                    <small class="text-danger">orders</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-6">
+                                <div class="border rounded p-3" style="border-color: rgba(255,255,255,0.1)!important;">
+                                    <small class="text-muted d-block mb-1">Avg Discount</small>
+                                    <h4 class="text-warning mb-0" id="stat-avg-discount">0%</h4>
+                                    <small class="text-warning">of subtotal</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Modal -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">Add User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="userForm">
+                <div class="modal-body">
+                    <input type="hidden" id="user-id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name *</label>
+                            <input type="text" class="form-control" id="user-first-name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name *</label>
+                            <input type="text" class="form-control" id="user-last-name" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Email *</label>
+                            <input type="email" class="form-control" id="user-email" required>
+                        </div>
+                        <div class="col-12" id="password-field">
+                            <label class="form-label">Password *</label>
+                            <input type="password" class="form-control" id="user-password" minlength="8">
+                            <small class="text-muted">Min 8 characters (leave blank to keep current)</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Role *</label>
+                            <div class="role-select-btns btn-group w-100">
+                                <button type="button" class="btn btn-outline-success role-btn" data-role="customer">
+                                    <i class="bi bi-person"></i> Customer
+                                </button>
+                                <button type="button" class="btn btn-outline-warning role-btn" data-role="staff">
+                                    <i class="bi bi-person-badge"></i> Staff
+                                </button>
+                                <button type="button" class="btn btn-outline-danger role-btn" data-role="admin">
+                                    <i class="bi bi-shield-lock"></i> Admin
+                                </button>
+                            </div>
+                            <input type="hidden" id="user-role" value="customer">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="user-active" checked>
+                                <label class="form-check-label" for="user-active">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="user-loyalty">
+                                <label class="form-check-label" for="user-loyalty">Loyalty Member</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Save User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Discount Rule Modal -->
+<div class="modal fade" id="discountRuleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="discountRuleModalTitle">Add Discount Rule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="discountRuleForm">
+                <div class="modal-body">
+                    <input type="hidden" id="discount-rule-id">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Rule Name *</label>
+                            <input type="text" class="form-control" id="discount-name" required placeholder="e.g., Summer Sale 20% Off">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="discount-active" checked>
+                                <label class="form-check-label" for="discount-active">Active</label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">Scope *</label>
+                            <select class="form-select" id="discount-scope" required>
+                                <option value="order">Order (Entire Order)</option>
+                                <option value="category">Category</option>
+                                <option value="item">Item (Specific Product)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Discount Type *</label>
+                            <select class="form-select" id="discount-type" required>
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fix">Fixed Amount (₹)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Discount Value *</label>
+                            <input type="number" class="form-control" id="discount-value" required step="0.01" min="0">
+                        </div>
+                        
+                        <div class="col-md-6" id="category-field" style="display:none;">
+                            <label class="form-label">Category *</label>
+                            <select class="form-select" id="discount-category">
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="variant-field" style="display:none;">
+                            <label class="form-label">Product Variant *</label>
+                            <select class="form-select" id="discount-variant">
+                                <option value="">Select Variant</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">Min Order Amount</label>
+                            <input type="number" class="form-control" id="discount-min-order" step="0.01" min="0" placeholder="Optional">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Min Quantity</label>
+                            <input type="number" class="form-control" id="discount-min-qty" step="1" min="0" placeholder="Optional">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">Start Date *</label>
+                            <input type="datetime-local" class="form-control" id="discount-start-date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">End Date</label>
+                            <input type="datetime-local" class="form-control" id="discount-end-date" placeholder="Leave empty for no expiry">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="discount-loyalty">
+                                <label class="form-check-label" for="discount-loyalty">
+                                    <i class="bi bi-star-fill text-warning"></i> Loyalty Members Only
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="discount-stackable">
+                                <label class="form-check-label" for="discount-stackable">
+                                    <i class="bi bi-layers"></i> Stackable with other discounts
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Save Discount Rule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Order Detail Modal -->
+<div class="modal fade" id="orderDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="bi bi-receipt"></i> Order Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="orderDetailContent">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-danger"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+// Check authentication
+if (!TokenManager.isAuthenticated()) {
+    window.location.href = URLS.adminLogin;
+}
+
+// Verify admin role
+const user = TokenManager.getUser();
+if (user && user.role !== 'admin') {
+    TokenManager.clearTokens();
+    window.location.href = URLS.adminLogin;
+}
+
+document.getElementById('userInfo').textContent = user ? user.full_name : 'Unknown';
+
+// =============================================================================
+// UTILITY FUNCTIONS - Single source of truth for common operations
+// =============================================================================
+
+/**
+ * Extract data array from API response (handles all response formats)
+ * @param {Object} response - API response
+ * @returns {Array} - Data array
+ */
+function extractDataArray(response) {
+    if (!response) return [];
+    const data = response.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.results)) return data.results;
+    if (response.results && Array.isArray(response.results)) return response.results;
+    return [];
+}
+
+/**
+ * Extract pagination info from API response
+ * @param {Object} response - API response
+ * @returns {Object} - Pagination info with defaults
+ */
+function extractPagination(response) {
+    const defaults = { current_page: 1, total_pages: 1, total_count: 0, page_size: 10 };
+    if (!response) return defaults;
+    const data = response.data;
+    if (data && data.pagination) return { ...defaults, ...data.pagination };
+    return defaults;
+}
+
+/**
+ * Format currency value
+ * @param {number|string} value - Value to format
+ * @returns {string} - Formatted currency string
+ */
+function formatCurrency(value) {
+    return '₹' + parseFloat(value || 0).toFixed(2);
+}
+
+/**
+ * Format date string to locale date
+ * @param {string} dateStr - Date string
+ * @returns {string} - Formatted date
+ */
+function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString();
+}
+
+/**
+ * Format date string to locale date and time
+ * @param {string} dateStr - Date string
+ * @returns {string} - Formatted date and time
+ */
+function formatDateTime(dateStr) {
+    return new Date(dateStr).toLocaleString();
+}
+
+/**
+ * Update pagination UI for a section
+ * @param {string} prefix - Element ID prefix (e.g., 'orders', 'applied-discounts')
+ * @param {number} currentPage - Current page number
+ * @param {number} totalPages - Total pages
+ * @param {number} totalCount - Total items
+ * @param {number} itemsShown - Items shown on current page
+ * @param {string} itemLabel - Label for items (e.g., 'orders', 'discounts')
+ */
+function updatePaginationUI(prefix, currentPage, totalPages, totalCount, itemsShown, itemLabel) {
+    const container = document.getElementById(`${prefix}-pagination-container`);
+    const info = document.getElementById(`${prefix}-pagination-info`);
+    const currentPageEl = document.getElementById(`${prefix}-current-page`);
+    const prevPage = document.getElementById(`${prefix}-prev-page`);
+    const nextPage = document.getElementById(`${prefix}-next-page`);
+    
+    if (!container) return;
+    
+    info.textContent = `Showing ${itemsShown} of ${totalCount} ${itemLabel} (Page ${currentPage} of ${totalPages})`;
+    currentPageEl.textContent = `${currentPage} / ${totalPages}`;
+    
+    if (totalPages > 1) {
+        container.style.display = 'flex';
+        prevPage.classList.toggle('disabled', currentPage <= 1);
+        nextPage.classList.toggle('disabled', currentPage >= totalPages);
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+/**
+ * Render empty state in a table body
+ * @param {HTMLElement} tbody - Table body element
+ * @param {number} colspan - Number of columns
+ * @param {string} icon - Bootstrap icon class
+ * @param {string} message - Message to display
+ */
+function renderEmptyState(tbody, colspan, icon, message) {
+    tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-state"><i class="bi ${icon}"></i><p>${message}</p></td></tr>`;
+}
+
+/**
+ * Render loading state in a table body
+ * @param {HTMLElement} tbody - Table body element
+ * @param {number} colspan - Number of columns
+ */
+function renderLoading(tbody, colspan) {
+    tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center py-4"><div class="spinner-border spinner-border-sm"></div></td></tr>`;
+}
+
+/**
+ * Render error state in a table body
+ * @param {HTMLElement} tbody - Table body element
+ * @param {number} colspan - Number of columns
+ * @param {string} message - Error message
+ */
+function renderError(tbody, colspan, message) {
+    tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-danger">${message}</td></tr>`;
+}
+
+// =============================================================================
+// DATA CACHE
+// =============================================================================
+let users = [];
+let discountRules = [];
+let categories = [];
+let variants = [];
+let orders = [];
+
+// Navigation
+document.querySelectorAll('[data-section]').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        switchSection(this.dataset.section);
+    });
+});
+
+function switchSection(sectionName, updateUrl = true) {
+    document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
+    document.querySelector(`[data-section="${sectionName}"]`)?.classList.add('active');
+    
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(`section-${sectionName}`)?.classList.add('active');
+    
+    const titles = {
+        'dashboard': 'Dashboard',
+        'users': 'All Users',
+        'staff': 'Staff Members',
+        'discount-rules': 'Discount Rules',
+        'applied-discounts': 'Applied Discounts',
+        'orders': 'All Orders',
+        'reports': 'Analytics & Reports'
+    };
+    document.getElementById('sectionTitle').textContent = titles[sectionName] || 'Dashboard';
+    
+    // Update URL hash
+    if (updateUrl) {
+        history.pushState(null, '', `#${sectionName}`);
+    }
+    
+    loadSectionData(sectionName);
+}
+
+async function loadSectionData(section) {
+    switch(section) {
+        case 'dashboard': loadDashboard(); break;
+        case 'users': loadUsers(); break;
+        case 'staff': loadStaff(); break;
+        case 'discount-rules': loadDiscountRules(); break;
+        case 'applied-discounts': loadAppliedDiscounts(); break;
+        case 'orders': loadOrders(); break;
+        case 'reports': loadReports(); break;
+    }
+}
+
+// API Helper with Auth
+async function apiRequest(endpoint, method = 'GET', data = null, retry = true) {
+    const options = {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${TokenManager.getAccessToken()}`
+        }
+    };
+    if (data) options.body = JSON.stringify(data);
+    
+    const response = await fetch(`/api${endpoint}`, options);
+    
+    // Handle 401 - try token refresh
+    if (response.status === 401 && retry) {
+        const refreshResult = await tryRefreshToken();
+        if (refreshResult === 'refreshed') {
+            // Retry the request with new token
+            return apiRequest(endpoint, method, data, false);
+        } else {
+            showSessionExpiredModal();
+            throw new Error('Session expired');
+        }
+    }
+    
+    if (method === 'DELETE' && response.status === 204) return { success: true };
+    return response.json();
+}
+
+// Token refresh helper
+async function tryRefreshToken() {
+    const refreshToken = TokenManager.getRefreshToken();
+    if (!refreshToken) return 'expired';
+    
+    try {
+        const response = await fetch('/api/account/token/refresh/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh: refreshToken })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.access) {
+                TokenManager.setTokens(data.access, refreshToken);
+                return 'refreshed';
+            }
+        }
+    } catch (e) {
+        console.error('Token refresh failed:', e);
+    }
+    return 'expired';
+}
+
+// Show session expired modal (uses modal from base template)
+function showSessionExpiredModal() {
+    TokenManager.clearTokens();
+    const modal = document.getElementById('sessionExpiredModal');
+    if (modal) {
+        new bootstrap.Modal(modal).show();
+    } else {
+        alert('Your session has expired. Please log in again.');
+        window.location.href = URLS.adminLogin;
+    }
+}
+
+// Dashboard
+async function loadDashboard() {
+    try {
+        const [usersRes, discountsRes, ordersRes] = await Promise.all([
+            apiRequest('/auth/users/'),
+            apiRequest('/discount/rules/'),
+            apiRequest('/order/')
+        ]);
+        
+        users = extractDataArray(usersRes);
+        discountRules = extractDataArray(discountsRes);
+        orders = extractDataArray(ordersRes);
+        
+        document.getElementById('stat-users').textContent = users.length;
+        document.getElementById('stat-staff').textContent = users.filter(u => u.role === 'staff' || u.is_staff).length;
+        document.getElementById('stat-orders').textContent = orders.length;
+        document.getElementById('stat-discounts').textContent = discountRules.filter(d => d.is_active).length;
+        
+        // Recent users
+        document.getElementById('recent-users').innerHTML = users.slice(0, 5).map(u => `
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="border-color: rgba(255,255,255,0.1)!important;">
+                <div>
+                    <strong>${u.first_name} ${u.last_name}</strong>
+                    <small class="text-muted d-block">${u.email}</small>
+                </div>
+                <span class="badge badge-${u.role || 'customer'}">${u.role || 'customer'}</span>
+            </div>
+        `).join('') || '<div class="text-muted">No users yet</div>';
+        
+        // Active discounts
+        const activeDiscounts = discountRules.filter(d => d.is_active);
+        document.getElementById('active-discounts').innerHTML = activeDiscounts.slice(0, 5).map(d => `
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="border-color: rgba(255,255,255,0.1)!important;">
+                <div>
+                    <strong>${d.name || 'Unnamed Rule'}</strong>
+                    <small class="text-muted d-block">${d.scope} - ${d.discount_type === 'percentage' ? d.discount_value + '%' : formatCurrency(d.discount_value)}</small>
+                </div>
+                ${d.requires_loyalty ? '<span class="badge bg-warning"><i class="bi bi-star-fill"></i></span>' : ''}
+            </div>
+        `).join('') || '<div class="text-muted">No active discounts</div>';
+        
+    } catch(e) {
+        console.error('Dashboard error:', e);
+    }
+}
+
+// Users
+async function loadUsers() {
+    try {
+        const response = await apiRequest('/auth/users/');
+        users = extractDataArray(response);
+        
+        renderUsersTable(users, 'users-tbody');
+    } catch(e) {
+        console.error('Load users error:', e);
+        renderError(document.getElementById('users-tbody'), 7, 'Error loading users');
+    }
+}
+
+function renderUsersTable(usersList, tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (usersList.length === 0) {
+        renderEmptyState(tbody, 7, 'bi-people', 'No users found');
+        return;
+    }
+    
+    tbody.innerHTML = usersList.map(u => `
+        <tr>
+            <td>${u.email}</td>
+            <td><strong>${u.first_name} ${u.last_name}</strong></td>
+            <td><span class="badge badge-${u.role || 'customer'}">${u.role || 'customer'}</span></td>
+            <td>${u.is_loyalty_member ? '<i class="bi bi-star-fill text-warning"></i>' : '-'}</td>
+            <td><span class="badge ${u.is_active ? 'badge-active' : 'badge-inactive'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td>${formatDate(u.created_at)}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-light" onclick="editUser('${u.id}')"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.id}')"><i class="bi bi-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Staff
+async function loadStaff() {
+    if (users.length === 0) await loadUsers();
+    const staffList = users.filter(u => u.role === 'staff' || u.is_staff);
+    
+    const tbody = document.getElementById('staff-tbody');
+    if (staffList.length === 0) {
+        renderEmptyState(tbody, 5, 'bi-person-badge', 'No staff members');
+        return;
+    }
+    
+    tbody.innerHTML = staffList.map(u => `
+        <tr>
+            <td>${u.email}</td>
+            <td><strong>${u.first_name} ${u.last_name}</strong></td>
+            <td><span class="badge ${u.is_active ? 'badge-active' : 'badge-inactive'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td>${formatDate(u.created_at)}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-light" onclick="editUser('${u.id}')"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.id}')"><i class="bi bi-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Role button handling
+document.querySelectorAll('.role-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('user-role').value = this.dataset.role;
+    });
+});
+
+function showUserForm(defaultRole = 'customer') {
+    document.getElementById('userModalTitle').textContent = 'Add User';
+    document.getElementById('userForm').reset();
+    document.getElementById('user-id').value = '';
+    document.getElementById('user-password').required = true;
+    
+    // Set default role
+    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-role="${defaultRole}"]`).classList.add('active');
+    document.getElementById('user-role').value = defaultRole;
+    
+    new bootstrap.Modal(document.getElementById('userModal')).show();
+}
+
+function editUser(id) {
+    const u = users.find(user => user.id === id);
+    if (!u) return;
+    
+    document.getElementById('userModalTitle').textContent = 'Edit User';
+    document.getElementById('user-id').value = u.id;
+    document.getElementById('user-first-name').value = u.first_name;
+    document.getElementById('user-last-name').value = u.last_name;
+    document.getElementById('user-email').value = u.email;
+    document.getElementById('user-password').value = '';
+    document.getElementById('user-password').required = false;
+    document.getElementById('user-active').checked = u.is_active;
+    document.getElementById('user-loyalty').checked = u.is_loyalty_member;
+    
+    const role = u.role || 'customer';
+    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-role="${role}"]`).classList.add('active');
+    document.getElementById('user-role').value = role;
+    
+    new bootstrap.Modal(document.getElementById('userModal')).show();
+}
+
+document.getElementById('userForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const userId = document.getElementById('user-id').value;
+    const role = document.getElementById('user-role').value;
+    const data = {
+        first_name: document.getElementById('user-first-name').value,
+        last_name: document.getElementById('user-last-name').value,
+        email: document.getElementById('user-email').value,
+        role: role,
+        is_staff: role === 'staff' || role === 'admin',
+        is_active: document.getElementById('user-active').checked,
+        is_loyalty_member: document.getElementById('user-loyalty').checked
+    };
+    
+    const password = document.getElementById('user-password').value;
+    if (password) data.password = password;
+    if (!userId) data.password_confirm = password;
+    
+    try {
+        let response;
+        if (userId) {
+            response = await apiRequest(`/auth/users/${userId}/`, 'PATCH', data);
+        } else {
+            response = await apiRequest('/auth/register/', 'POST', data);
+        }
+        
+        bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+        showAlert(document.getElementById('alert-container'), 'User saved successfully!', 'success');
+        loadUsers();
+        if (document.getElementById('section-staff').classList.contains('active')) loadStaff();
+    } catch(e) {
+        showAlert(document.getElementById('alert-container'), 'Error saving user');
+    }
+});
+
+async function deleteUser(id) {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+    await apiRequest(`/auth/users/${id}/`, 'DELETE');
+    showAlert(document.getElementById('alert-container'), 'User deleted', 'success');
+    loadUsers();
+}
+
+// Discount Rules
+async function loadDiscountRules() {
+    try {
+        const response = await apiRequest('/discount/rules/');
+        discountRules = extractDataArray(response);
+        
+        await loadCategoriesForDropdown();
+        await loadVariantsForDropdown();
+        
+        const tbody = document.getElementById('discount-rules-tbody');
+        if (discountRules.length === 0) {
+            renderEmptyState(tbody, 9, 'bi-percent', 'No discount rules');
+            return;
+        }
+        
+        tbody.innerHTML = discountRules.map(d => {
+            const now = new Date();
+            const start = new Date(d.start_date);
+            const end = d.end_date ? new Date(d.end_date) : null;
+            let validity = 'Active';
+            let validityClass = 'bg-success';
+            if (start > now) { validity = 'Upcoming'; validityClass = 'bg-info'; }
+            else if (end && end < now) { validity = 'Expired'; validityClass = 'bg-secondary'; }
+            
+            return `
+                <tr>
+                    <td><strong>${d.name || 'Unnamed'}</strong></td>
+                    <td><span class="badge bg-secondary">${d.scope}</span></td>
+                    <td>${d.discount_type}</td>
+                    <td><strong>${d.discount_type === 'percentage' ? d.discount_value + '%' : formatCurrency(d.discount_value)}</strong></td>
+                    <td>${d.min_order_amount ? formatCurrency(d.min_order_amount) : '-'}</td>
+                    <td>${d.is_stackable ? '<span class="badge bg-success"><i class="bi bi-layers-fill"></i> Yes</span>' : '<span class="badge bg-warning text-dark"><i class="bi bi-layer-forward"></i> No</span>'}</td>
+                    <td>${d.requires_loyalty ? '<i class="bi bi-star-fill text-warning"></i> Yes' : 'No'}</td>
+                    <td><span class="badge ${d.is_active ? 'badge-active' : 'badge-inactive'}">${d.is_active ? 'Active' : 'Inactive'}</span></td>
+                    <td><span class="badge ${validityClass}">${validity}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-light" onclick="editDiscountRule('${d.id}')"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDiscountRule('${d.id}')"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch(e) {
+        console.error('Load discount rules error:', e);
+    }
+}
+
+async function loadCategoriesForDropdown() {
+    if (categories.length === 0) {
+        const response = await apiRequest('/product/categories/');
+        categories = extractDataArray(response);
+    }
+    document.getElementById('discount-category').innerHTML = '<option value="">Select Category</option>' +
+        categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+async function loadVariantsForDropdown() {
+    if (variants.length === 0) {
+        const response = await apiRequest('/product/variants/');
+        variants = extractDataArray(response);
+    }
+    document.getElementById('discount-variant').innerHTML = '<option value="">Select Variant</option>' +
+        variants.map(v => `<option value="${v.id}">${v.name || v.sku_name || 'Variant ' + v.id}</option>`).join('');
+}
+
+// Scope change handler
+document.getElementById('discount-scope').addEventListener('change', function() {
+    const scope = this.value;
+    document.getElementById('category-field').style.display = scope === 'category' ? 'block' : 'none';
+    document.getElementById('variant-field').style.display = scope === 'item' ? 'block' : 'none';
+});
+
+function showDiscountRuleForm() {
+    document.getElementById('discountRuleModalTitle').textContent = 'Add Discount Rule';
+    document.getElementById('discountRuleForm').reset();
+    document.getElementById('discount-rule-id').value = '';
+    document.getElementById('discount-active').checked = true;
+    document.getElementById('category-field').style.display = 'none';
+    document.getElementById('variant-field').style.display = 'none';
+    
+    // Set default start date to now
+    const now = new Date();
+    document.getElementById('discount-start-date').value = now.toISOString().slice(0, 16);
+    
+    new bootstrap.Modal(document.getElementById('discountRuleModal')).show();
+}
+
+function editDiscountRule(id) {
+    const d = discountRules.find(rule => rule.id === id);
+    if (!d) return;
+    
+    document.getElementById('discountRuleModalTitle').textContent = 'Edit Discount Rule';
+    document.getElementById('discount-rule-id').value = d.id;
+    document.getElementById('discount-name').value = d.name || '';
+    document.getElementById('discount-scope').value = d.scope;
+    document.getElementById('discount-type').value = d.discount_type;
+    document.getElementById('discount-value').value = d.discount_value;
+    document.getElementById('discount-min-order').value = d.min_order_amount || '';
+    document.getElementById('discount-min-qty').value = d.min_quantity || '';
+    document.getElementById('discount-start-date').value = d.start_date ? d.start_date.slice(0, 16) : '';
+    document.getElementById('discount-end-date').value = d.end_date ? d.end_date.slice(0, 16) : '';
+    document.getElementById('discount-active').checked = d.is_active;
+    document.getElementById('discount-loyalty').checked = d.requires_loyalty;
+    document.getElementById('discount-stackable').checked = d.is_stackable;
+    document.getElementById('discount-category').value = d.categories || '';
+    document.getElementById('discount-variant').value = d.product_variant || '';
+    
+    // Show/hide scope fields
+    document.getElementById('category-field').style.display = d.scope === 'category' ? 'block' : 'none';
+    document.getElementById('variant-field').style.display = d.scope === 'item' ? 'block' : 'none';
+    
+    new bootstrap.Modal(document.getElementById('discountRuleModal')).show();
+}
+
+document.getElementById('discountRuleForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const ruleId = document.getElementById('discount-rule-id').value;
+    const scope = document.getElementById('discount-scope').value;
+    
+    const data = {
+        name: document.getElementById('discount-name').value,
+        scope: scope,
+        discount_type: document.getElementById('discount-type').value,
+        discount_value: parseFloat(document.getElementById('discount-value').value),
+        min_order_amount: document.getElementById('discount-min-order').value || null,
+        min_quantity: document.getElementById('discount-min-qty').value || null,
+        start_date: document.getElementById('discount-start-date').value,
+        end_date: document.getElementById('discount-end-date').value || null,
+        is_active: document.getElementById('discount-active').checked,
+        requires_loyalty: document.getElementById('discount-loyalty').checked,
+        is_stackable: document.getElementById('discount-stackable').checked
+    };
+    
+    if (scope === 'category') {
+        data.categories = document.getElementById('discount-category').value || null;
+    }
+    if (scope === 'item') {
+        data.product_variant = document.getElementById('discount-variant').value || null;
+    }
+    
+    try {
+        if (ruleId) {
+            await apiRequest(`/discount/rules/${ruleId}/`, 'PATCH', data);
+        } else {
+            await apiRequest('/discount/rules/', 'POST', data);
+        }
+        
+        bootstrap.Modal.getInstance(document.getElementById('discountRuleModal')).hide();
+        showAlert(document.getElementById('alert-container'), 'Discount rule saved!', 'success');
+        loadDiscountRules();
+    } catch(e) {
+        showAlert(document.getElementById('alert-container'), 'Error saving discount rule');
+    }
+});
+
+async function deleteDiscountRule(id) {
+    if (!confirm('Are you sure?')) return;
+    await apiRequest(`/discount/rules/${id}/`, 'DELETE');
+    showAlert(document.getElementById('alert-container'), 'Discount rule deleted', 'success');
+    loadDiscountRules();
+}
+
+// Applied Discounts pagination state
+let appliedDiscountsCurrentPage = 1;
+let appliedDiscountsTotalPages = 1;
+
+// Applied Discounts
+async function loadAppliedDiscounts() {
+    loadAppliedDiscountsPage(1);
+}
+
+async function loadAppliedDiscountsPage(page = 1) {
+    if (page < 1) return;
+    appliedDiscountsCurrentPage = page;
+    
+    const tbody = document.getElementById('applied-discounts-tbody');
+    const paginationContainer = document.getElementById('applied-discounts-pagination-container');
+    
+    renderLoading(tbody, 5);
+    
+    try {
+        const response = await apiRequest(`/discount/applied/?page=${page}&page_size=20`);
+        const applied = extractDataArray(response);
+        const pagination = extractPagination(response);
+        
+        appliedDiscountsTotalPages = pagination.total_pages;
+        
+        if (applied.length === 0) {
+            renderEmptyState(tbody, 5, 'bi-check2-circle', 'No applied discounts yet');
+            if (paginationContainer) paginationContainer.style.display = 'none';
+            return;
+        }
+        
+        tbody.innerHTML = applied.map(a => `
+            <tr>
+                <td><strong>#${a.order_number || 'N/A'}</strong></td>
+                <td>${a.rule_name || 'Unknown Rule'}</td>
+                <td><span class="badge bg-secondary">${a.scope}</span></td>
+                <td class="text-success"><strong>${formatCurrency(a.discount_amount)}</strong></td>
+                <td>${formatDateTime(a.created_at)}</td>
+            </tr>
+        `).join('');
+        
+        // Update pagination UI
+        updatePaginationUI(
+            'applied-discounts',
+            page,
+            pagination.total_pages,
+            pagination.total_count,
+            applied.length,
+            'discounts'
+        );
+    } catch(e) {
+        console.error('Load applied discounts error:', e);
+        renderError(tbody, 5, 'Error loading applied discounts');
+    }
+}
+
+// Orders pagination state
+let ordersCurrentPage = 1;
+let ordersTotalPages = 1;
+
+// Orders
+async function loadOrders() {
+    loadOrdersPage(1);
+}
+
+async function loadOrdersPage(page = 1) {
+    if (page < 1) return;
+    ordersCurrentPage = page;
+    
+    const tbody = document.getElementById('orders-tbody');
+    const paginationContainer = document.getElementById('orders-pagination-container');
+    
+    renderLoading(tbody, 8);
+    
+    try {
+        // Get filter values
+        const statusFilter = document.getElementById('order-status-filter')?.value || '';
+        let url = `/order/?all=true&page=${page}&page_size=10`;
+        if (statusFilter) {
+            url += `&status=${statusFilter}`;
+        }
+        
+        const response = await apiRequest(url);
+        orders = extractDataArray(response);
+        const pagination = extractPagination(response);
+        
+        ordersTotalPages = pagination.total_pages;
+        
+        if (orders.length === 0) {
+            renderEmptyState(tbody, 8, 'bi-bag-check', 'No orders yet');
+            if (paginationContainer) paginationContainer.style.display = 'none';
+            return;
+        }
+        
+        tbody.innerHTML = orders.map(o => {
+            const statusColors = {
+                'created': 'bg-secondary',
+                'confirmed': 'bg-info',
+                'processing': 'bg-warning',
+                'shipped': 'bg-primary',
+                'delivered': 'bg-success',
+                'cancelled': 'bg-danger'
+            };
+            return `
+                <tr>
+                    <td><strong>${o.order_number || o.id.slice(0, 8)}</strong></td>
+                    <td>${o.user_email || 'Guest'}</td>
+                    <td><span class="badge ${statusColors[o.order_status] || 'bg-secondary'}">${o.order_status || 'N/A'}</span></td>
+                    <td>${o.items_count || '-'}</td>
+                    <td>${formatCurrency(o.total_payable_amount || o.subtotal)}</td>
+                    <td class="text-success">${o.discount_amount ? formatCurrency(o.discount_amount) : '-'}</td>
+                    <td>${formatDate(o.created_at)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-light" onclick="viewOrder('${o.id}')"><i class="bi bi-eye"></i></button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        // Update pagination UI using utility function
+        updatePaginationUI('orders', page, pagination.total_pages, pagination.total_count, orders.length, 'orders');
+    } catch(e) {
+        console.error('Load orders error:', e);
+        renderError(tbody, 8, 'Error loading orders');
+    }
+}
+
+async function viewOrder(id) {
+    // Show modal with loading state
+    new bootstrap.Modal(document.getElementById('orderDetailModal')).show();
+    document.getElementById('orderDetailContent').innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-danger"></div>
+            <p class="mt-3 text-muted">Loading order details...</p>
+        </div>
+    `;
+    
+    try {
+        const response = await apiRequest(`/order/${id}/`);
+        const order = response.data || response;
+        
+        if (!order) {
+            document.getElementById('orderDetailContent').innerHTML = `
+                <div class="text-center py-5 text-danger">
+                    <i class="bi bi-exclamation-triangle fs-1"></i>
+                    <p>Order not found</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Build order details HTML
+        const subtotal = parseFloat(order.subtotal || 0);
+        const discount = parseFloat(order.discount_amount || 0);
+        const tax = parseFloat(order.total_payable_tax || 0);
+        const total = parseFloat(order.total_payable_amount || 0);
+        
+        // Build discount breakdown section
+        let discountHtml = '<p class="text-muted mb-0">No discounts applied</p>';
+        if (order.discount_breakdown && order.discount_breakdown.applied_count > 0) {
+            const breakdown = order.discount_breakdown;
+            discountHtml = `
+                <div class="mb-2">
+                    <strong>Total Discount: ₹${breakdown.total_discount}</strong>
+                    <span class="badge bg-info ms-2">${breakdown.applied_count} discount(s) applied</span>
+                </div>
+                ${breakdown.distribution.map(dist => `
+                    <div class="card mb-2">
+                        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-tag-fill text-warning"></i> ${dist.scope_display} Discounts</span>
+                            <span class="badge bg-success">-₹${dist.total_amount}</span>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            ${dist.discounts.map(d => `
+                                <li class="list-group-item d-flex justify-content-between py-2">
+                                    <span>${d.rule_name}</span>
+                                    <span class="text-success">-₹${d.amount}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `).join('')}
+            `;
+        }
+        
+        // Build shipping address section
+        let addressHtml = '<p class="text-muted mb-0">No shipping address</p>';
+        if (order.shipping_address_details) {
+            const addr = order.shipping_address_details;
+            addressHtml = `
+                <p class="mb-1">${addr.address_line_1}</p>
+                ${addr.address_line_2 ? `<p class="mb-1">${addr.address_line_2}</p>` : ''}
+                <p class="mb-0">${addr.city}, ${addr.postal_code}</p>
+                <p class="mb-0">${addr.country}</p>
+            `;
+        }
+        
+        document.getElementById('orderDetailContent').innerHTML = `
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-2">Order Information</h6>
+                    <table class="table table-sm">
+                        <tr><td class="text-muted">Order #</td><td><strong>${order.order_number}</strong></td></tr>
+                        <tr><td class="text-muted">Customer</td><td>${order.user_email}</td></tr>
+                        <tr><td class="text-muted">Status</td><td><span class="badge bg-${getStatusColor(order.order_status)}">${(order.order_status || 'unknown').replace(/_/g, ' ')}</span></td></tr>
+                        <tr><td class="text-muted">Payment</td><td><span class="badge bg-${getPaymentStatusColor(order.payment_status)}">${(order.payment_status || 'pending').replace(/_/g, ' ')}</span></td></tr>
+                        <tr><td class="text-muted">Date</td><td>${new Date(order.created_at).toLocaleString()}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-2">Shipping Address</h6>
+                    ${addressHtml}
+                </div>
+            </div>
+            
+            <h6 class="text-muted mb-2"><i class="bi bi-box"></i> Order Items</h6>
+            <table class="table table-sm mb-4">
+                <thead class="table-light">
+                    <tr><th>Product</th><th>Variant</th><th class="text-center">Qty</th><th class="text-end">Price</th><th class="text-end">Total</th></tr>
+                </thead>
+                <tbody>
+                    ${(order.order_items || []).map(item => `
+                        <tr>
+                            <td>${item.product_name}</td>
+                            <td>${item.variant_name}</td>
+                            <td class="text-center">${item.quantity}</td>
+                            <td class="text-end">₹${parseFloat(item.unit_rate).toFixed(2)}</td>
+                            <td class="text-end">₹${parseFloat(item.amount).toFixed(2)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            
+            <h6 class="text-muted mb-2"><i class="bi bi-percent"></i> Discount Details</h6>
+            <div class="mb-4">
+                ${discountHtml}
+            </div>
+            
+            <h6 class="text-muted mb-2"><i class="bi bi-calculator"></i> Order Summary</h6>
+            <table class="table table-sm">
+                <tr><td>Subtotal</td><td class="text-end">₹${subtotal.toFixed(2)}</td></tr>
+                <tr class="text-success"><td>Discount</td><td class="text-end">-₹${discount.toFixed(2)}</td></tr>
+                ${tax > 0 ? `<tr><td>Tax</td><td class="text-end">₹${tax.toFixed(2)}</td></tr>` : ''}
+                <tr class="fw-bold table-active"><td>Total</td><td class="text-end">₹${total.toFixed(2)}</td></tr>
+            </table>
+        `;
+    } catch(e) {
+        console.error('Error loading order:', e);
+        document.getElementById('orderDetailContent').innerHTML = `
+            <div class="text-center py-5 text-danger">
+                <i class="bi bi-exclamation-triangle fs-1"></i>
+                <p>Error loading order details</p>
+            </div>
+        `;
+    }
+}
+
+function getStatusColor(status) {
+    const colors = {
+        'created': 'secondary',
+        'confirmed': 'info',
+        'processing': 'primary',
+        'shipped': 'warning',
+        'delivered': 'success',
+        'cancelled': 'danger'
+    };
+    return colors[status] || 'secondary';
+}
+
+function getPaymentStatusColor(status) {
+    const colors = {
+        'payment_pending': 'warning',
+        'payment_completed': 'success',
+        'payment_failed': 'danger',
+        'refunded': 'info'
+    };
+    return colors[status] || 'secondary';
+}
+
+// Chart instances
+let salesTrendChart = null;
+let orderStatusChart = null;
+let paymentStatusChart = null;
+let dailyOrdersChart = null;
+
+// Pagination state for tables
+let topOrdersPage = 1;
+let topOrdersTotalPages = 1;
+let recentActivityPage = 1;
+let recentActivityTotalPages = 1;
+
+// Reports - loads aggregated data for charts/stats
+async function loadReports() {
+    // Fetch all orders for aggregation (charts, stats)
+    // Use large page_size to get all data for calculations
+    const response = await apiRequest('/order/?all=true&page_size=1000');
+    orders = extractDataArray(response);
+    
+    // Update last refreshed timestamp
+    const now = new Date();
+    document.getElementById('report-last-updated').textContent = now.toLocaleString();
+    
+    // Calculate metrics
+    const totalSales = orders.reduce((sum, o) => sum + parseFloat(o.total_payable_amount || o.subtotal || 0), 0);
+    const totalDiscounts = orders.reduce((sum, o) => sum + parseFloat(o.discount_amount || 0), 0);
+    const avgOrder = orders.length > 0 ? totalSales / orders.length : 0;
+    
+    // Calculate median order value
+    const sortedAmounts = orders.map(o => parseFloat(o.total_payable_amount || 0)).sort((a, b) => a - b);
+    const medianOrder = sortedAmounts.length > 0 
+        ? (sortedAmounts.length % 2 === 0 
+            ? (sortedAmounts[sortedAmounts.length/2 - 1] + sortedAmounts[sortedAmounts.length/2]) / 2 
+            : sortedAmounts[Math.floor(sortedAmounts.length/2)])
+        : 0;
+    
+    // Count by status
+    const statusCounts = {
+        pending: orders.filter(o => o.order_status === 'pending').length,
+        processing: orders.filter(o => o.order_status === 'processing').length,
+        shipped: orders.filter(o => o.order_status === 'shipped').length,
+        delivered: orders.filter(o => o.order_status === 'delivered').length,
+        cancelled: orders.filter(o => o.order_status === 'cancelled').length
+    };
+    
+    // Payment status counts
+    const paymentCounts = {
+        pending: orders.filter(o => o.payment_status === 'payment_pending').length,
+        completed: orders.filter(o => o.payment_status === 'payment_completed').length,
+        failed: orders.filter(o => o.payment_status === 'payment_failed').length,
+        refunded: orders.filter(o => o.payment_status === 'refunded').length
+    };
+    
+    // Average discount percentage
+    const avgDiscountPercent = totalSales > 0 ? (totalDiscounts / (totalSales + totalDiscounts)) * 100 : 0;
+    
+    // Update key metrics
+    document.getElementById('report-total-sales').textContent = formatCurrency(totalSales);
+    document.getElementById('report-total-orders').textContent = orders.length;
+    document.getElementById('report-completed-orders').textContent = statusCounts.delivered + ' delivered';
+    document.getElementById('report-avg-order').textContent = formatCurrency(avgOrder);
+    document.getElementById('report-median-order').textContent = 'Median: ' + formatCurrency(medianOrder);
+    document.getElementById('report-total-discounts').textContent = formatCurrency(totalDiscounts);
+    document.getElementById('report-discount-percent').textContent = avgDiscountPercent.toFixed(1) + '% of subtotal';
+    
+    // Update quick stats
+    document.getElementById('stat-pending-orders').textContent = statusCounts.pending;
+    document.getElementById('stat-processing-orders').textContent = statusCounts.processing;
+    document.getElementById('stat-shipped-orders').textContent = statusCounts.shipped;
+    document.getElementById('stat-delivered-orders').textContent = statusCounts.delivered;
+    document.getElementById('stat-cancelled-orders').textContent = statusCounts.cancelled;
+    document.getElementById('stat-avg-discount').textContent = avgDiscountPercent.toFixed(1) + '%';
+    
+    // Render charts
+    renderSalesTrendChart('7days');
+    renderOrderStatusChart(statusCounts);
+    renderPaymentStatusChart(paymentCounts);
+    renderDailyOrdersChart();
+    
+    // Load paginated tables
+    loadTopOrders(1);
+    loadRecentActivity(1);
+}
+
+// Paginated Top Orders (sorted by amount descending)
+async function loadTopOrders(page = 1) {
+    topOrdersPage = page;
+    const tbody = document.getElementById('top-orders-table');
+    const pagination = document.getElementById('top-orders-pagination');
+    const info = document.getElementById('top-orders-info');
+    
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center"><div class="spinner-border spinner-border-sm text-danger"></div></td></tr>';
+    
+    try {
+        const response = await apiRequest(`/order/?all=true&page=${page}&page_size=5`);
+        const ordersData = extractDataArray(response);
+        const paginationData = extractPagination(response);
+        
+        topOrdersTotalPages = paginationData.total_pages;
+        
+        // Sort by amount descending
+        const sortedOrders = [...ordersData].sort((a, b) => 
+            parseFloat(b.total_payable_amount || 0) - parseFloat(a.total_payable_amount || 0)
+        );
+        
+        if (sortedOrders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No orders found</td></tr>';
+            pagination.style.display = 'none';
+            info.textContent = '0 orders';
+            return;
+        }
+        
+        tbody.innerHTML = sortedOrders.map(order => `
+            <tr>
+                <td><span class="badge bg-secondary">${order.order_number || 'N/A'}</span></td>
+                <td>${order.user_email || 'Unknown'}</td>
+                <td class="text-success fw-bold">${formatCurrency(order.total_payable_amount)}</td>
+                <td>${formatDate(order.created_at)}</td>
+            </tr>
+        `).join('');
+        
+        // Update pagination info
+        info.textContent = `Page ${page} of ${topOrdersTotalPages} (${paginationData.total_count} total)`;
+        document.getElementById('top-orders-page-info').textContent = `${page} / ${topOrdersTotalPages}`;
+        
+        // Show/hide pagination
+        if (topOrdersTotalPages > 1) {
+            pagination.style.display = 'block';
+            document.getElementById('top-orders-prev').classList.toggle('disabled', page <= 1);
+            document.getElementById('top-orders-next').classList.toggle('disabled', page >= topOrdersTotalPages);
+        } else {
+            pagination.style.display = 'none';
+        }
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error loading orders</td></tr>';
+        info.textContent = 'Error';
+    }
+}
+
+// Paginated Recent Activity (sorted by date descending)
+async function loadRecentActivity(page = 1) {
+    recentActivityPage = page;
+    const container = document.getElementById('recent-activity-list');
+    const pagination = document.getElementById('recent-activity-pagination');
+    const info = document.getElementById('recent-activity-info');
+    
+    container.innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-danger"></div></div>';
+    
+    try {
+        const response = await apiRequest(`/order/?all=true&page=${page}&page_size=8`);
+        const ordersData = extractDataArray(response);
+        const paginationData = extractPagination(response);
+        
+        recentActivityTotalPages = paginationData.total_pages;
+        
+        // Already sorted by date from API (order_by=-created_at)
+        if (ordersData.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted py-4">No recent activity</div>';
+            pagination.style.display = 'none';
+            info.textContent = '0 orders';
+            return;
+        }
+        
+        container.innerHTML = ordersData.map(order => {
+            const statusColor = getStatusColor(order.order_status);
+            const timeAgo = getTimeAgo(order.created_at);
+            return `
+                <div class="d-flex align-items-center py-2 border-bottom" style="border-color: rgba(255,255,255,0.1)!important;">
+                    <div class="me-3">
+                        <span class="badge bg-${statusColor}" style="width: 80px;">${order.order_status}</span>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${order.order_number || 'Order'}</div>
+                        <small class="text-muted">${order.user_email || 'Unknown customer'}</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="text-success">${formatCurrency(order.total_payable_amount)}</div>
+                        <small class="text-muted">${timeAgo}</small>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Update pagination info
+        info.textContent = `Page ${page} of ${recentActivityTotalPages} (${paginationData.total_count} total)`;
+        document.getElementById('recent-activity-page-info').textContent = `${page} / ${recentActivityTotalPages}`;
+        
+        // Show/hide pagination
+        if (recentActivityTotalPages > 1) {
+            pagination.style.display = 'block';
+            document.getElementById('recent-activity-prev').classList.toggle('disabled', page <= 1);
+            document.getElementById('recent-activity-next').classList.toggle('disabled', page >= recentActivityTotalPages);
+        } else {
+            pagination.style.display = 'none';
+        }
+    } catch (error) {
+        container.innerHTML = '<div class="text-center text-danger py-4">Error loading activity</div>';
+        info.textContent = 'Error';
+    }
+}
+
+function getTimeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const seconds = Math.floor((now - date) / 1000);
+    
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+    if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+    if (seconds < 604800) return Math.floor(seconds / 86400) + 'd ago';
+    return date.toLocaleDateString();
+}
+
+function renderSalesTrendChart(period) {
+    const ctx = document.getElementById('salesTrendChart');
+    if (!ctx) return;
+    
+    // Group orders by date
+    const salesByDate = {};
+    const discountsByDate = {};
+    const now = new Date();
+    let daysToShow = period === '7days' ? 7 : period === '30days' ? 30 : 90;
+    
+    // Initialize dates
+    for (let i = daysToShow - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        const dateKey = date.toISOString().split('T')[0];
+        salesByDate[dateKey] = 0;
+        discountsByDate[dateKey] = 0;
+    }
+    
+    // Aggregate data
+    orders.forEach(order => {
+        const dateKey = order.created_at.split('T')[0];
+        if (salesByDate.hasOwnProperty(dateKey)) {
+            salesByDate[dateKey] += parseFloat(order.total_payable_amount || 0);
+            discountsByDate[dateKey] += parseFloat(order.discount_amount || 0);
+        }
+    });
+    
+    const labels = Object.keys(salesByDate).map(d => {
+        const date = new Date(d);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+    
+    if (salesTrendChart) {
+        salesTrendChart.destroy();
+    }
+    
+    salesTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Revenue',
+                data: Object.values(salesByDate),
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                fill: true,
+                tension: 0.4
+            }, {
+                label: 'Discounts',
+                data: Object.values(discountsByDate),
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: { color: '#aaa' }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#aaa' },
+                    grid: { color: 'rgba(255,255,255,0.1)' }
+                },
+                y: {
+                    ticks: { 
+                        color: '#aaa',
+                        callback: value => '₹' + value
+                    },
+                    grid: { color: 'rgba(255,255,255,0.1)' }
+                }
+            }
+        }
+    });
+}
+
+function updateSalesChart(period) {
+    // Update button states
+    document.querySelectorAll('[onclick^="updateSalesChart"]').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick').includes(period)) {
+            btn.classList.add('active');
+        }
+    });
+    renderSalesTrendChart(period);
+}
+
+function renderOrderStatusChart(statusCounts) {
+    const ctx = document.getElementById('orderStatusChart');
+    if (!ctx) return;
+    
+    if (orderStatusChart) {
+        orderStatusChart.destroy();
+    }
+    
+    orderStatusChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+            datasets: [{
+                data: [
+                    statusCounts.pending,
+                    statusCounts.processing,
+                    statusCounts.shipped,
+                    statusCounts.delivered,
+                    statusCounts.cancelled
+                ],
+                backgroundColor: ['#ffc107', '#17a2b8', '#007bff', '#28a745', '#dc3545'],
+                borderColor: '#1a1a2e',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#aaa', padding: 15 }
+                }
+            }
+        }
+    });
+}
+
+function renderPaymentStatusChart(paymentCounts) {
+    const ctx = document.getElementById('paymentStatusChart');
+    if (!ctx) return;
+    
+    if (paymentStatusChart) {
+        paymentStatusChart.destroy();
+    }
+    
+    paymentStatusChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Pending', 'Completed', 'Failed', 'Refunded'],
+            datasets: [{
+                label: 'Orders',
+                data: [
+                    paymentCounts.pending,
+                    paymentCounts.completed,
+                    paymentCounts.failed,
+                    paymentCounts.refunded
+                ],
+                backgroundColor: ['#ffc107', '#28a745', '#dc3545', '#17a2b8'],
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#aaa' },
+                    grid: { display: false }
+                },
+                y: {
+                    ticks: { color: '#aaa', stepSize: 1 },
+                    grid: { color: 'rgba(255,255,255,0.1)' }
+                }
+            }
+        }
+    });
+}
+
+function renderDailyOrdersChart() {
+    const ctx = document.getElementById('dailyOrdersChart');
+    if (!ctx) return;
+    
+    // Get last 7 days
+    const ordersByDay = {};
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+        ordersByDay[dayName] = 0;
+    }
+    
+    // Count orders
+    orders.forEach(order => {
+        const orderDate = new Date(order.created_at);
+        const daysDiff = Math.floor((now - orderDate) / (1000 * 60 * 60 * 24));
+        if (daysDiff >= 0 && daysDiff < 7) {
+            const dayName = orderDate.toLocaleDateString('en-US', { weekday: 'short' });
+            if (ordersByDay.hasOwnProperty(dayName)) {
+                ordersByDay[dayName]++;
+            }
+        }
+    });
+    
+    if (dailyOrdersChart) {
+        dailyOrdersChart.destroy();
+    }
+    
+    dailyOrdersChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(ordersByDay),
+            datasets: [{
+                label: 'Orders',
+                data: Object.values(ordersByDay),
+                backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                borderColor: '#0d6efd',
+                borderWidth: 1,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#aaa' },
+                    grid: { display: false }
+                },
+                y: {
+                    ticks: { color: '#aaa', stepSize: 1 },
+                    grid: { color: 'rgba(255,255,255,0.1)' },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// Logout
+function logout() {
+    TokenManager.clearTokens();
+    window.location.href = URLS.adminLogin;
+}
+
+// Handle browser back/forward navigation
+window.addEventListener('popstate', function() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && document.querySelector(`[data-section="${hash}"]`)) {
+        switchSection(hash, false);
+    }
+});
+
+// Initial load - check for hash in URL
+const initialHash = window.location.hash.replace('#', '');
+const validSections = ['dashboard', 'users', 'staff', 'discount-rules', 'applied-discounts', 'orders', 'reports'];
+if (initialHash && validSections.includes(initialHash)) {
+    switchSection(initialHash, false);
+} else {
+    loadDashboard();
+}
+</script>
+{% endblock %}
