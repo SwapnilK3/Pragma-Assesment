@@ -75,7 +75,7 @@ class DiscountRuleSerializer(serializers.ModelSerializer):
 
 
 class DiscountRuleListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for listing discount rules."""
+    """Serializer for listing discount rules with all necessary fields."""
     category_name = serializers.CharField(source='categories.name', read_only=True)
     variant_name = serializers.CharField(source='product_variant.name', read_only=True)
 
@@ -83,20 +83,24 @@ class DiscountRuleListSerializer(serializers.ModelSerializer):
         model = DiscountRule
         fields = [
             'id', 'name', 'is_active',
+            'requires_loyalty', 'is_stackable',
             'scope', 'discount_type', 'discount_value',
+            'min_order_amount', 'min_quantity',
             'start_date', 'end_date',
-            'category_name', 'variant_name'
+            'categories', 'category_name',
+            'product_variant', 'variant_name'
         ]
 
 
 class AppliedDiscountSerializer(serializers.ModelSerializer):
     """Serializer for viewing applied discounts."""
     rule_name = serializers.CharField(source='discount_rule.name', read_only=True)
+    order_number = serializers.IntegerField(source='order.order_number', read_only=True)
 
     class Meta:
         model = AppliedDiscount
         fields = [
-            'id', 'order', 'discount_rule', 'rule_name',
+            'id', 'order', 'order_number', 'discount_rule', 'rule_name',
             'scope', 'discount_amount', 'metadata',
             'created_at'
         ]
