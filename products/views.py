@@ -1,14 +1,11 @@
-"""
-ViewSets for Products app.
-"""
 import logging
 
 from django.db import DatabaseError
-from rest_framework.permissions import AllowAny
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
 
 from core.utils import rest_api_formatter
 from products.models import Category, SKU, Product, ProductVariant
@@ -21,18 +18,82 @@ from products.serializers import (
 logger = logging.getLogger(__name__)
 
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+class CategoryViewSet(viewsets.ModelViewSet):
     """
-    Read-only ViewSet for Category.
-    Categories are seeded/admin-managed, used for dropdowns in product creation.
+    ViewSet for Category CRUD operations.
+    Categories can be created/managed by staff/admin.
     """
     queryset = Category.objects.filter(is_active=True)
     serializer_class = CategorySerializer
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # TODO: Add IsAdminUser for write operations
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name']
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
+
+    def create(self, request, *args, **kwargs):
+        logger.info(f"Creating category: {request.data.get('name', 'N/A')}")
+        try:
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                category = serializer.save()
+                logger.info(f"Category created: {category.id} - {category.name}")
+                return rest_api_formatter(
+                    status_code=status.HTTP_201_CREATED,
+                    success=True,
+                    message='Category created successfully',
+                    data=CategorySerializer(category).data
+                )
+            logger.warning(f"Category creation validation failed: {serializer.errors}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                success=False,
+                message='Validation failed',
+                error_code='VALIDATION_ERROR',
+                error_message=str(serializer.errors)
+            )
+        except DatabaseError as e:
+            logger.error(f"Database error creating category: {str(e)}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                success=False,
+                message='Database error',
+                error_code='DATABASE_ERROR'
+            )
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        logger.info(f"Updating category: {instance.id}")
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            category = serializer.save()
+            return rest_api_formatter(
+                status_code=status.HTTP_200_OK,
+                success=True,
+                message='Category updated successfully',
+                data=CategorySerializer(category).data
+            )
+        return rest_api_formatter(
+            data=None,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            success=False,
+            message='Validation failed',
+            error_message=str(serializer.errors)
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        logger.info(f"Deleting category: {instance.id}")
+        instance.is_active = False
+        instance.save()
+        return rest_api_formatter(
+            status_code=status.HTTP_204_NO_CONTENT,
+            success=True,
+            message='Category deleted successfully'
+        )
 
     @action(detail=False, methods=['get'])
     def tree(self, request):
@@ -41,32 +102,123 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(CategorySerializer(root_categories, many=True).data)
 
 
-class SKUViewSet(viewsets.ReadOnlyModelViewSet):
+class SKUViewSet(viewsets.ModelViewSet):
     """
-    Read-only ViewSet for SKU.
-    SKUs are seeded/admin-managed, used for dropdowns in variant creation.
+    ViewSet for SKU CRUD operations.
+    SKUs can be created/managed by staff/admin.
     """
     queryset = SKU.objects.all()
     serializer_class = SKUSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # TODO: Add IsAdminUser for write operations
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['short_name', 'description']
     ordering_fields = ['short_name']
     ordering = ['short_name']
+
+    def create(self, request, *args, **kwargs):
+        logger.info(f"Creating SKU: {request.data.get('short_name', 'N/A')}")
+        try:
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                sku = serializer.save()
+                logger.info(f"SKU created: {sku.id} - {sku.short_name}")
+                return rest_api_formatter(
+                    status_code=status.HTTP_201_CREATED,
+                    success=True,
+                    message='SKU created successfully',
+                    data=SKUSerializer(sku).data
+                )
+            logger.warning(f"SKU creation validation failed: {serializer.errors}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                success=False,
+                message='Validation failed',
+                error_code='VALIDATION_ERROR',
+                error_message=str(serializer.errors)
+            )
+        except DatabaseError as e:
+            logger.error(f"Database error creating SKU: {str(e)}")
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                success=False,
+                message='Database error',
+                error_code='DATABASE_ERROR'
+            )
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        logger.info(f"Updating SKU: {instance.id}")
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            sku = serializer.save()
+            return rest_api_formatter(
+                status_code=status.HTTP_200_OK,
+                success=True,
+                message='SKU updated successfully',
+                data=SKUSerializer(sku).data
+            )
+        return rest_api_formatter(
+            data=None,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            success=False,
+            message='Validation failed',
+            error_message=str(serializer.errors)
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        logger.info(f"Deleting SKU: {instance.id}")
+        instance.delete()
+        return rest_api_formatter(
+            status_code=status.HTTP_204_NO_CONTENT,
+            success=True,
+            message='SKU deleted successfully'
+        )
+
+
+def get_all_child_category_ids(category_id):
+    """
+    Recursively get all child category IDs for a given parent category.
+    Includes the parent category itself.
+    """
+    from products.models import Category
+
+    ids = [category_id]
+    children = Category.objects.filter(parent_id=category_id, is_active=True)
+    for child in children:
+        ids.extend(get_all_child_category_ids(child.id))
+    return ids
 
 
 class ProductViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Product CRUD operations.
     Handles nested MediaFile creation during product creation/update.
+    Supports hierarchical category filtering (parent includes all children).
     """
     queryset = Product.objects.filter(is_active=True).select_related('category', 'default_variant')
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'is_active']
+    filterset_fields = ['is_active']  # Removed 'category' - handled manually for hierarchy
     search_fields = ['name', 'description_plaintext']
     ordering_fields = ['name', 'rating', 'created_at']
     ordering = ['-created_at']
+
+    def get_queryset(self):
+        """Override to support hierarchical category filtering."""
+        queryset = super().get_queryset()
+
+        # Handle category filter with parent-child hierarchy
+        category_id = self.request.query_params.get('category')
+        if category_id:
+            # Get all child category IDs (including the parent itself)
+            all_category_ids = get_all_child_category_ids(category_id)
+            queryset = queryset.filter(category_id__in=all_category_ids)
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action == 'list':

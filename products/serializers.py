@@ -1,30 +1,36 @@
 """
 Serializers for Products app models.
 """
-from rest_framework import serializers
 from django.db import transaction
+from rest_framework import serializers
 
-from core.models import MediaFile
 from core import MediaType, MediaAccess
+from core.models import MediaFile
 from products.models import Category, SKU, Product, ProductVariant, ProductMedia, VariantMedia
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    """Read-only serializer for Category (used in product creation dropdown)."""
+    """Serializer for Category CRUD operations with parent-child hierarchy info."""
+    parent_name = serializers.CharField(source='parent.name', read_only=True, allow_null=True)
+    children_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
-        fields = ['id', 'name', 'parent', 'is_active']
-        read_only_fields = ['id', 'name', 'parent', 'is_active']
+        fields = ['id', 'name', 'parent', 'parent_name', 'children_count', 'is_active']
+        read_only_fields = ['id']
+
+    def get_children_count(self, obj):
+        """Get count of child categories."""
+        return Category.objects.filter(parent=obj, is_active=True).count()
 
 
 class SKUSerializer(serializers.ModelSerializer):
-    """Read-only serializer for SKU (used in variant creation dropdown)."""
+    """Serializer for SKU CRUD operations."""
 
     class Meta:
         model = SKU
         fields = ['id', 'short_name', 'description', 'quantity', 'unit']
-        read_only_fields = ['id', 'short_name', 'description', 'quantity', 'unit']
+        read_only_fields = ['id']
 
 
 class MediaFileSerializer(serializers.ModelSerializer):
@@ -39,10 +45,11 @@ class MediaFileSerializer(serializers.ModelSerializer):
 class ProductVariantListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for ProductVariant listing."""
     sku_name = serializers.CharField(source='product_sku.short_name', read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True)
 
     class Meta:
         model = ProductVariant
-        fields = ['id', 'name', 'price', 'sku_name', 'is_active']
+        fields = ['id', 'name', 'product', 'product_name', 'product_sku', 'price', 'sku_name', 'is_active']
 
 
 class ProductVariantDetailSerializer(serializers.ModelSerializer):
