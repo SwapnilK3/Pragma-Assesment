@@ -2,7 +2,7 @@ import logging
 
 from django.contrib.auth import get_user_model, authenticate
 from django.db import IntegrityError, DatabaseError
-from django_rest.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView, RetrieveUpdateDestroyAPIView
