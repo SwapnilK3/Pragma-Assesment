@@ -86,21 +86,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         role = validated_data.pop('role')
-        if role == USER_ROLES.ADMIN:
-            is_staff = True
-            is_superuser = True
-        else :
-            is_staff = True if role == USER_ROLES.STAFF else False
-            is_superuser = False
 
-
+        # Model's save() will automatically sync is_staff/is_superuser based on role
         user = User.objects.create_user(
             email=validated_data['email'],
             role=role,
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
-            is_staff=is_staff,
-            is_superuser=is_superuser,
             password=validated_data['password'],
             date_of_birth=validated_data.get('date_of_birth', None),
             gender=validated_data.get('gender', None),
