@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from core import Currency
 from core.models import Address
+from core.validators import validate_possible_number
 from discounts.models import AppliedDiscount
 from inventory.models import StockInventory
 from orders.models import Order, OrderItem
@@ -60,6 +61,16 @@ class OrderSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 f"Missing required fields: {missing_fields}"
             )
+
+        # Validate phone number format
+        phone = shipping_address.get('phone', '')
+        if phone:
+            try:
+                validate_possible_number(phone)
+            except Exception as e:
+                raise serializers.ValidationError(
+                    f"Invalid phone number: {str(e)}"
+                )
 
         return shipping_address
 
