@@ -1,11 +1,11 @@
 """
 Serializers for Inventory app models.
 """
-from rest_framework import serializers
 from django.db import transaction
+from rest_framework import serializers
 
-from inventory.models import StockInventory, StockTransaction
 from inventory import TransactionType
+from inventory.models import StockInventory, StockTransaction
 
 
 class StockTransactionSerializer(serializers.ModelSerializer):
@@ -48,7 +48,7 @@ class StockTransactionCreateSerializer(serializers.ModelSerializer):
 
 class StockInventoryListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for StockInventory listing."""
-    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_name = serializers.SerializerMethodField()
     variant_name = serializers.CharField(source='product_variant.name', read_only=True)
 
     class Meta:
@@ -59,10 +59,18 @@ class StockInventoryListSerializer(serializers.ModelSerializer):
             'to_produce_quantity', 'is_unlimited_stock', 'is_active'
         ]
 
+    def get_product_name(self, obj):
+        """Get product name from product or from variant's product."""
+        if obj.product:
+            return obj.product.name
+        if obj.product_variant and obj.product_variant.product:
+            return obj.product_variant.product.name
+        return None
+
 
 class StockInventoryDetailSerializer(serializers.ModelSerializer):
     """Detailed serializer for StockInventory with transactions."""
-    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_name = serializers.SerializerMethodField()
     variant_name = serializers.CharField(source='product_variant.name', read_only=True)
     recent_transactions = serializers.SerializerMethodField()
 
@@ -75,6 +83,14 @@ class StockInventoryDetailSerializer(serializers.ModelSerializer):
             'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'remaining_quantity', 'to_produce_quantity']
+
+    def get_product_name(self, obj):
+        """Get product name from product or from variant's product."""
+        if obj.product:
+            return obj.product.name
+        if obj.product_variant and obj.product_variant.product:
+            return obj.product_variant.product.name
+        return None
 
     def get_recent_transactions(self, obj):
         transactions = obj.stock_transaction.filter(is_active=True).order_by('-created_at')[:10]
@@ -89,12 +105,19 @@ class StockInventoryCreateSerializer(serializers.ModelSerializer):
         min_value=0,
         help_text="Initial stock quantity (creates an INWARD transaction)"
     )
+    add_stock = serializers.IntegerField(
+        write_only=True,
+        required=False,
+        min_value=1,
+        help_text="Add stock quantity (creates an INWARD transaction on update)"
+    )
 
     class Meta:
         model = StockInventory
         fields = [
             'id', 'product', 'product_variant', 'total_quantity',
-            'reserved_quantity', 'is_unlimited_stock', 'initial_quantity', 'is_active'
+            'reserved_quantity', 'is_unlimited_stock', 'initial_quantity',
+            'add_stock', 'is_active'
         ]
         read_only_fields = ['id']
 
@@ -109,11 +132,31 @@ class StockInventoryCreateSerializer(serializers.ModelSerializer):
                     "Either 'product' or 'product_variant' must be provided"
                 )
 
+            # if product and product_variant:
+            #     raise serializers.ValidationError(
+            #         "Only one of 'product' or 'product_variant' should be provided, not both"
+            #     )
+
+            # Check for existing inventory
+            if product_variant:
+                existing = StockInventory.objects.filter(product_variant=product_variant, is_active=True).first()
+                if existing:
+                    raise serializers.ValidationError(
+                        f"Inventory already exists for this product variant. Use the existing entry (ID: {existing.id}) to add stock."
+                    )
+            if product:
+                existing = StockInventory.objects.filter(product=product, is_active=True).first()
+                if existing:
+                    raise serializers.ValidationError(
+                        f"Inventory already exists for this product. Use the existing entry (ID: {existing.id}) to add stock."
+                    )
+
         return data
 
     @transaction.atomic
     def create(self, validated_data):
         initial_quantity = validated_data.pop('initial_quantity', None)
+        validated_data.pop('add_stock', None)  # Not used on create
 
         inventory = StockInventory.objects.create(**validated_data)
 
@@ -132,10 +175,24 @@ class StockInventoryCreateSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def update(self, instance, validated_data):
-        validated_data.pop('initial_quantity', None)  # Ignore on update
+        validated_data.pop('initial_quantity', None)  # Use add_stock for updates
+        add_stock = validated_data.pop('add_stock', None)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+        # Update simple fields
+        for attr in ['total_quantity', 'reserved_quantity', 'is_unlimited_stock', 'is_active']:
+            if attr in validated_data:
+                setattr(instance, attr, validated_data[attr])
 
+        # If add_stock is provided, create an INWARD transaction
+        if add_stock and add_stock > 0:
+            StockTransaction.objects.create(
+                inventory=instance,
+                type=TransactionType.INWARD,
+                quantity=add_stock,
+                metadata={'note': 'Stock addition via update'}
+            )
+
+        # Recalculate inventory quantities (remaining, to_produce)
+        instance.calculate_inventory_qty()
         instance.save()
         return instance
