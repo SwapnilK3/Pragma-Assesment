@@ -569,10 +569,8 @@
                     <select class="form-select" id="order-status-filter">
                         <option value="">All Status</option>
                         <option value="created">Created</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="processing">Processing</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="handed_over">Handed Over</option>
                         <option value="cancelled">Cancelled</option>
                     </select>
                 </div>
@@ -840,29 +838,22 @@
                         <div class="row g-3 text-center">
                             <div class="col-md-2 col-6">
                                 <div class="border rounded p-3" style="border-color: rgba(255,255,255,0.1)!important;">
-                                    <small class="text-muted d-block mb-1">Pending</small>
-                                    <h4 class="text-warning mb-0" id="stat-pending-orders">0</h4>
+                                    <small class="text-muted d-block mb-1">Created</small>
+                                    <h4 class="text-warning mb-0" id="stat-created-orders">0</h4>
                                     <small class="text-warning">orders</small>
                                 </div>
                             </div>
                             <div class="col-md-2 col-6">
                                 <div class="border rounded p-3" style="border-color: rgba(255,255,255,0.1)!important;">
-                                    <small class="text-muted d-block mb-1">Processing</small>
-                                    <h4 class="text-info mb-0" id="stat-processing-orders">0</h4>
+                                    <small class="text-muted d-block mb-1">Scheduled</small>
+                                    <h4 class="text-info mb-0" id="stat-scheduled-orders">0</h4>
                                     <small class="text-info">orders</small>
                                 </div>
                             </div>
                             <div class="col-md-2 col-6">
                                 <div class="border rounded p-3" style="border-color: rgba(255,255,255,0.1)!important;">
-                                    <small class="text-muted d-block mb-1">Shipped</small>
-                                    <h4 class="text-primary mb-0" id="stat-shipped-orders">0</h4>
-                                    <small class="text-primary">orders</small>
-                                </div>
-                            </div>
-                            <div class="col-md-2 col-6">
-                                <div class="border rounded p-3" style="border-color: rgba(255,255,255,0.1)!important;">
-                                    <small class="text-muted d-block mb-1">Delivered</small>
-                                    <h4 class="text-success mb-0" id="stat-delivered-orders">0</h4>
+                                    <small class="text-muted d-block mb-1">Handed Over</small>
+                                    <h4 class="text-success mb-0" id="stat-handed-over-orders">0</h4>
                                     <small class="text-success">orders</small>
                                 </div>
                             </div>
@@ -1133,6 +1124,17 @@ function extractPagination(response) {
  */
 function formatCurrency(value) {
     return '₹' + parseFloat(value || 0).toFixed(2);
+}
+
+/**
+ * Format status for display - converts backend status values to human-readable format
+ * @param {string} status - Backend status value (e.g., 'payment_pending', 'handed_over')
+ * @returns {string} - Human-readable status (e.g., 'Payment Pending', 'Handed Over')
+ */
+function formatStatus(status) {
+    if (!status) return 'Unknown';
+    // Replace underscores with spaces and capitalize each word
+    return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 /**
@@ -1440,6 +1442,71 @@ async function loadStaff() {
         </tr>
     `).join('');
 }
+
+// User Filter Functions
+function filterUsers() {
+    const searchTerm = document.getElementById('user-search').value.toLowerCase().trim();
+    const roleFilter = document.getElementById('user-role-filter').value;
+    const statusFilter = document.getElementById('user-status-filter').value;
+    
+    let filteredUsers = users.filter(u => {
+        // Search filter: match email, first name, or last name
+        const matchesSearch = !searchTerm || 
+            u.email.toLowerCase().includes(searchTerm) ||
+            u.first_name.toLowerCase().includes(searchTerm) ||
+            u.last_name.toLowerCase().includes(searchTerm) ||
+            `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchTerm);
+        
+        // Role filter
+        const matchesRole = !roleFilter || (u.role || 'customer') === roleFilter;
+        
+        // Status filter
+        const matchesStatus = !statusFilter || String(u.is_active) === statusFilter;
+        
+        return matchesSearch && matchesRole && matchesStatus;
+    });
+    
+    renderUsersTable(filteredUsers, 'users-tbody');
+}
+
+// Add event listeners for user filters
+document.getElementById('user-search').addEventListener('input', filterUsers);
+document.getElementById('user-role-filter').addEventListener('change', filterUsers);
+document.getElementById('user-status-filter').addEventListener('change', filterUsers);
+
+// Staff filter
+document.getElementById('staff-search').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase().trim();
+    const staffList = users.filter(u => {
+        const isStaff = u.role === 'staff' || u.is_staff;
+        if (!isStaff) return false;
+        
+        return !searchTerm ||
+            u.email.toLowerCase().includes(searchTerm) ||
+            u.first_name.toLowerCase().includes(searchTerm) ||
+            u.last_name.toLowerCase().includes(searchTerm) ||
+            `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchTerm);
+    });
+    
+    const tbody = document.getElementById('staff-tbody');
+    if (staffList.length === 0) {
+        renderEmptyState(tbody, 5, 'bi-person-badge', 'No staff members found');
+        return;
+    }
+    
+    tbody.innerHTML = staffList.map(u => `
+        <tr>
+            <td>${u.email}</td>
+            <td><strong>${u.first_name} ${u.last_name}</strong></td>
+            <td><span class="badge ${u.is_active ? 'badge-active' : 'badge-inactive'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td>${formatDate(u.created_at)}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-light" onclick="editUser('${u.id}')"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.id}')"><i class="bi bi-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+});
 
 // Role button handling
 document.querySelectorAll('.role-btn').forEach(btn => {
@@ -1788,18 +1855,16 @@ async function loadOrdersPage(page = 1) {
         
         tbody.innerHTML = orders.map(o => {
             const statusColors = {
-                'created': 'bg-secondary',
-                'confirmed': 'bg-info',
-                'processing': 'bg-warning',
-                'shipped': 'bg-primary',
-                'delivered': 'bg-success',
+                'created': 'bg-warning',
+                'scheduled': 'bg-info',
+                'handed_over': 'bg-success',
                 'cancelled': 'bg-danger'
             };
             return `
                 <tr>
                     <td><strong>${o.order_number || o.id.slice(0, 8)}</strong></td>
                     <td>${o.user_email || 'Guest'}</td>
-                    <td><span class="badge ${statusColors[o.order_status] || 'bg-secondary'}">${o.order_status || 'N/A'}</span></td>
+                    <td><span class="badge ${statusColors[o.order_status] || 'bg-secondary'}">${formatStatus(o.order_status)}</span></td>
                     <td>${o.items_count || '-'}</td>
                     <td>${formatCurrency(o.total_payable_amount || o.subtotal)}</td>
                     <td class="text-success">${o.discount_amount ? formatCurrency(o.discount_amount) : '-'}</td>
@@ -1896,8 +1961,8 @@ async function viewOrder(id) {
                     <table class="table table-sm">
                         <tr><td class="text-muted">Order #</td><td><strong>${order.order_number}</strong></td></tr>
                         <tr><td class="text-muted">Customer</td><td>${order.user_email}</td></tr>
-                        <tr><td class="text-muted">Status</td><td><span class="badge bg-${getStatusColor(order.order_status)}">${(order.order_status || 'unknown').replace(/_/g, ' ')}</span></td></tr>
-                        <tr><td class="text-muted">Payment</td><td><span class="badge bg-${getPaymentStatusColor(order.payment_status)}">${(order.payment_status || 'pending').replace(/_/g, ' ')}</span></td></tr>
+                        <tr><td class="text-muted">Status</td><td><span class="badge bg-${getStatusColor(order.order_status)}">${formatStatus(order.order_status)}</span></td></tr>
+                        <tr><td class="text-muted">Payment</td><td><span class="badge bg-${getPaymentStatusColor(order.payment_status)}">${formatStatus(order.payment_status)}</span></td></tr>
                         <tr><td class="text-muted">Date</td><td>${new Date(order.created_at).toLocaleString()}</td></tr>
                     </table>
                 </div>
@@ -1951,11 +2016,9 @@ async function viewOrder(id) {
 
 function getStatusColor(status) {
     const colors = {
-        'created': 'secondary',
-        'confirmed': 'info',
-        'processing': 'primary',
-        'shipped': 'warning',
-        'delivered': 'success',
+        'created': 'warning',
+        'scheduled': 'info',
+        'handed_over': 'success',
         'cancelled': 'danger'
     };
     return colors[status] || 'secondary';
@@ -1964,9 +2027,9 @@ function getStatusColor(status) {
 function getPaymentStatusColor(status) {
     const colors = {
         'payment_pending': 'warning',
-        'payment_completed': 'success',
-        'payment_failed': 'danger',
-        'refunded': 'info'
+        'paid': 'success',
+        'payment_refund': 'info',
+        'payment_refunded': 'secondary'
     };
     return colors[status] || 'secondary';
 }
@@ -2007,21 +2070,20 @@ async function loadReports() {
             : sortedAmounts[Math.floor(sortedAmounts.length/2)])
         : 0;
     
-    // Count by status
+    // Count by status (matches backend OrderStatus: created, scheduled, handed_over, cancelled)
     const statusCounts = {
-        pending: orders.filter(o => o.order_status === 'pending').length,
-        processing: orders.filter(o => o.order_status === 'processing').length,
-        shipped: orders.filter(o => o.order_status === 'shipped').length,
-        delivered: orders.filter(o => o.order_status === 'delivered').length,
+        created: orders.filter(o => o.order_status === 'created').length,
+        scheduled: orders.filter(o => o.order_status === 'scheduled').length,
+        handed_over: orders.filter(o => o.order_status === 'handed_over').length,
         cancelled: orders.filter(o => o.order_status === 'cancelled').length
     };
     
-    // Payment status counts
+    // Payment status counts (matches backend PaymentStatus: paid, payment_pending, payment_refund, payment_refunded)
     const paymentCounts = {
         pending: orders.filter(o => o.payment_status === 'payment_pending').length,
-        completed: orders.filter(o => o.payment_status === 'payment_completed').length,
-        failed: orders.filter(o => o.payment_status === 'payment_failed').length,
-        refunded: orders.filter(o => o.payment_status === 'refunded').length
+        paid: orders.filter(o => o.payment_status === 'paid').length,
+        refund_pending: orders.filter(o => o.payment_status === 'payment_refund').length,
+        refunded: orders.filter(o => o.payment_status === 'payment_refunded').length
     };
     
     // Average discount percentage
@@ -2030,17 +2092,16 @@ async function loadReports() {
     // Update key metrics
     document.getElementById('report-total-sales').textContent = formatCurrency(totalSales);
     document.getElementById('report-total-orders').textContent = orders.length;
-    document.getElementById('report-completed-orders').textContent = statusCounts.delivered + ' delivered';
+    document.getElementById('report-completed-orders').textContent = statusCounts.handed_over + ' handed over';
     document.getElementById('report-avg-order').textContent = formatCurrency(avgOrder);
     document.getElementById('report-median-order').textContent = 'Median: ' + formatCurrency(medianOrder);
     document.getElementById('report-total-discounts').textContent = formatCurrency(totalDiscounts);
     document.getElementById('report-discount-percent').textContent = avgDiscountPercent.toFixed(1) + '% of subtotal';
     
     // Update quick stats
-    document.getElementById('stat-pending-orders').textContent = statusCounts.pending;
-    document.getElementById('stat-processing-orders').textContent = statusCounts.processing;
-    document.getElementById('stat-shipped-orders').textContent = statusCounts.shipped;
-    document.getElementById('stat-delivered-orders').textContent = statusCounts.delivered;
+    document.getElementById('stat-created-orders').textContent = statusCounts.created;
+    document.getElementById('stat-scheduled-orders').textContent = statusCounts.scheduled;
+    document.getElementById('stat-handed-over-orders').textContent = statusCounts.handed_over;
     document.getElementById('stat-cancelled-orders').textContent = statusCounts.cancelled;
     document.getElementById('stat-avg-discount').textContent = avgDiscountPercent.toFixed(1) + '%';
     
@@ -2140,7 +2201,7 @@ async function loadRecentActivity(page = 1) {
             return `
                 <div class="d-flex align-items-center py-2 border-bottom" style="border-color: rgba(255,255,255,0.1)!important;">
                     <div class="me-3">
-                        <span class="badge bg-${statusColor}" style="width: 80px;">${order.order_status}</span>
+                        <span class="badge bg-${statusColor}" style="width: 100px;">${formatStatus(order.order_status)}</span>
                     </div>
                     <div class="flex-grow-1">
                         <div class="fw-bold">${order.order_number || 'Order'}</div>
@@ -2288,16 +2349,15 @@ function renderOrderStatusChart(statusCounts) {
     orderStatusChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+            labels: ['Created', 'Scheduled', 'Handed Over', 'Cancelled'],
             datasets: [{
                 data: [
-                    statusCounts.pending,
-                    statusCounts.processing,
-                    statusCounts.shipped,
-                    statusCounts.delivered,
+                    statusCounts.created,
+                    statusCounts.scheduled,
+                    statusCounts.handed_over,
                     statusCounts.cancelled
                 ],
-                backgroundColor: ['#ffc107', '#17a2b8', '#007bff', '#28a745', '#dc3545'],
+                backgroundColor: ['#ffc107', '#17a2b8', '#28a745', '#dc3545'],
                 borderColor: '#1a1a2e',
                 borderWidth: 2
             }]
@@ -2326,16 +2386,16 @@ function renderPaymentStatusChart(paymentCounts) {
     paymentStatusChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Pending', 'Completed', 'Failed', 'Refunded'],
+            labels: ['Pending', 'Paid', 'Refund Pending', 'Refunded'],
             datasets: [{
                 label: 'Orders',
                 data: [
                     paymentCounts.pending,
-                    paymentCounts.completed,
-                    paymentCounts.failed,
+                    paymentCounts.paid,
+                    paymentCounts.refund_pending,
                     paymentCounts.refunded
                 ],
-                backgroundColor: ['#ffc107', '#28a745', '#dc3545', '#17a2b8'],
+                backgroundColor: ['#ffc107', '#28a745', '#fd7e14', '#17a2b8'],
                 borderRadius: 5
             }]
         },
