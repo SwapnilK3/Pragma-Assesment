@@ -241,8 +241,8 @@ class OrderListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'order_number', 'user_email',
             'order_status', 'payment_status',
-            'total_payable_amount', 'currency',
-            'items_count', 'created_at'
+            'total_payable_amount', 'discount_amount',
+            'currency', 'items_count', 'created_at'
         ]
         read_only_fields = ['id', 'order_number', 'created_at']
 
