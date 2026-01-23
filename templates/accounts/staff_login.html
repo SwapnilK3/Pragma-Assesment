@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Login - Pragma E-Commerce{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card staff">
+        <div class="text-center mb-4">
+            <i class="bi bi-person-badge-fill fs-1 text-warning"></i>
+            <h2 class="mt-2">Staff Portal</h2>
+            <span class="role-badge staff">
+                <i class="bi bi-person-badge"></i> Staff Access
+            </span>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <form id="loginForm" novalidate>
+            <div class="form-floating mb-3">
+                <input type="email" class="form-control" id="email" name="email" 
+                       placeholder="name@example.com" required>
+                <label for="email"><i class="bi bi-envelope"></i> Staff Email</label>
+                <div class="invalid-feedback">Please enter a valid email address.</div>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input type="password" class="form-control" id="password" name="password" 
+                       placeholder="Password" required minlength="8">
+                <label for="password"><i class="bi bi-lock"></i> Password</label>
+                <div class="invalid-feedback">Password is required.</div>
+            </div>
+
+            <button type="submit" class="btn btn-staff w-100 py-2" id="loginBtn">
+                <span class="btn-text"><i class="bi bi-box-arrow-in-right"></i> Staff Sign In</span>
+                <span class="loading-spinner spinner-border spinner-border-sm" role="status"></span>
+            </button>
+        </form>
+
+        <hr class="my-4">
+
+        <div class="text-center">
+            <small class="text-muted">Other portals:</small>
+            <div class="mt-2">
+                <a href="{% url 'customer_login' %}" class="btn btn-sm btn-outline-success me-2">
+                    <i class="bi bi-shop"></i> Customer
+                </a>
+                <a href="{% url 'admin_login' %}" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-shield-lock"></i> Admin
+                </a>
+            </div>
+        </div>
+        
+        <div class="mt-4 p-3 bg-light rounded">
+            <small class="text-muted">
+                <i class="bi bi-info-circle"></i> 
+                Staff accounts are created by administrators. Contact your admin if you need access.
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const alertContainer = document.getElementById('alert-container');
+    const loginBtn = document.getElementById('loginBtn');
+    
+    alertContainer.innerHTML = '';
+    
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+    
+    setLoading(loginBtn, true);
+    
+    try {
+        const response = await API.post('/auth/login/', {
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+        });
+        
+        if (response.success) {
+            TokenManager.setTokens(
+                response.data.tokens.access,
+                response.data.tokens.refresh
+            );
+            TokenManager.setUser(response.data.user);
+            
+            // Check role - only allow staff
+            const userRole = response.data.user.role || 'customer';
+            if (userRole !== 'staff' && userRole !== 'admin') {
+                showAlert(alertContainer, 
+                    'Access denied. This portal is for staff members only.', 
+                    'danger'
+                );
+                TokenManager.clearTokens();
+                setLoading(loginBtn, false);
+                return;
+            }
+            
+            showAlert(alertContainer, 'Login successful! Redirecting to staff dashboard...', 'success');
+            setTimeout(() => {
+                redirectToDashboard('staff');
+            }, 1000);
+        } else {
+            showAlert(alertContainer, response.message || 'Invalid credentials');
+        }
+    } catch (error) {
+        showAlert(alertContainer, 'Network error. Please try again.');
+        console.error('Login error:', error);
+    } finally {
+        setLoading(loginBtn, false);
+    }
+});
+</script>
+{% endblock %}

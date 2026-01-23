@@ -2,9 +2,10 @@ import logging
 
 from django.contrib.auth import get_user_model, authenticate
 from django.db import IntegrityError, DatabaseError
-from django_rest.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework.generics import ListAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -233,3 +234,197 @@ class LogoutView(APIView):
                 error_code='INTERNAL_ERROR',
                 error_message='Please try again later'
             )
+
+
+class UserListView(APIView):
+    """API view for listing all users (admin only)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Check if user is admin
+        if not (request.user.is_staff or getattr(request.user, 'role', '') == 'admin'):
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_403_FORBIDDEN,
+                success=False,
+                message='Permission denied',
+                error_code='PERMISSION_DENIED',
+                error_message='Only admins can access this resource'
+            )
+
+        users = User.objects.all().order_by('-created_at')
+        serializer = UserSerializer(users, many=True)
+        return rest_api_formatter(
+            status_code=status.HTTP_200_OK,
+            success=True,
+            message='Users retrieved successfully',
+            data=serializer.data
+        )
+
+
+class UserProfileView(APIView):
+    """API view for current user's profile (view and update own info)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Get current user's profile."""
+        return rest_api_formatter(
+            status_code=status.HTTP_200_OK,
+            success=True,
+            message='Profile retrieved successfully',
+            data=UserSerializer(request.user).data
+        )
+
+    def patch(self, request):
+        """Update current user's profile (limited fields)."""
+        user = request.user
+        
+        # Only allow updating certain fields for own profile
+        allowed_fields = ['first_name', 'last_name']
+        for field in allowed_fields:
+            if field in request.data:
+                setattr(user, field, request.data[field])
+
+        # Handle password update for own account
+        if 'password' in request.data and request.data['password']:
+            # Optionally verify old password
+            old_password = request.data.get('old_password')
+            if old_password and not user.check_password(old_password):
+                return rest_api_formatter(
+                    data=None,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    success=False,
+                    message='Current password is incorrect',
+                    error_code='INVALID_PASSWORD'
+                )
+            user.set_password(request.data['password'])
+
+        user.save()
+
+        return rest_api_formatter(
+            status_code=status.HTTP_200_OK,
+            success=True,
+            message='Profile updated successfully',
+            data=UserSerializer(user).data
+        )
+
+
+class UserDetailView(APIView):
+    """API view for user detail, update, and delete (admin only)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_user(self, pk):
+        try:
+            return User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        if not (request.user.is_staff or getattr(request.user, 'role', '') == 'admin'):
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_403_FORBIDDEN,
+                success=False,
+                message='Permission denied'
+            )
+
+        user = self.get_user(pk)
+        if not user:
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+                success=False,
+                message='User not found'
+            )
+
+        return rest_api_formatter(
+            status_code=status.HTTP_200_OK,
+            success=True,
+            data=UserSerializer(user).data
+        )
+
+    def patch(self, request, pk):
+        if not (request.user.is_staff or getattr(request.user, 'role', '') == 'admin'):
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_403_FORBIDDEN,
+                success=False,
+                message='Permission denied'
+            )
+
+        user = self.get_user(pk)
+        if not user:
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+                success=False,
+                message='User not found'
+            )
+
+        # Admin can only edit staff/admin users, NOT customers
+        target_role = getattr(user, 'role', 'customer')
+        if target_role == 'customer':
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_403_FORBIDDEN,
+                success=False,
+                message='Cannot modify customer accounts',
+                error_code='PERMISSION_DENIED',
+                error_message='Admin cannot edit or change passwords for customer accounts'
+            )
+
+        # Update allowed fields (for staff/admin only)
+        allowed_fields = ['first_name', 'last_name', 'is_active', 'is_staff', 'is_loyalty_member', 'role']
+        for field in allowed_fields:
+            if field in request.data:
+                setattr(user, field, request.data[field])
+
+        # Handle password update (only for staff/admin users)
+        if 'password' in request.data and request.data['password']:
+            user.set_password(request.data['password'])
+
+        user.save()
+
+        return rest_api_formatter(
+            status_code=status.HTTP_200_OK,
+            success=True,
+            message='User updated successfully',
+            data=UserSerializer(user).data
+        )
+
+    def delete(self, request, pk):
+        if not (request.user.is_staff or getattr(request.user, 'role', '') == 'admin'):
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_403_FORBIDDEN,
+                success=False,
+                message='Permission denied'
+            )
+
+        user = self.get_user(pk)
+        if not user:
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+                success=False,
+                message='User not found'
+            )
+
+        # Prevent self-deletion
+        if user.id == request.user.id:
+            return rest_api_formatter(
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                success=False,
+                message='Cannot delete yourself'
+            )
+
+        user.delete()
+        return rest_api_formatter(
+            status_code=status.HTTP_204_NO_CONTENT,
+            success=True,
+            message='User deleted successfully'
+        )

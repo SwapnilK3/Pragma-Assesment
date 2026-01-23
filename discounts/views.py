@@ -10,7 +10,8 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
-from core.utils import rest_api_formatter
+from core.utils import rest_api_formatter, Pagination
+from discounts.cache import invalidate_all_discount_caches
 from discounts.models import DiscountRule, AppliedDiscount
 from discounts.serializers import (
     DiscountRuleSerializer,
@@ -108,6 +109,9 @@ class DiscountRuleViewSet(viewsets.ModelViewSet):
 
             if serializer.is_valid():
                 discount_rule = serializer.save()
+
+                # Invalidate all discount caches when a new rule is created
+                invalidate_all_discount_caches()
 
                 logger.info(f"Discount rule created: {discount_rule.name} (ID: {discount_rule.id})")
                 return rest_api_formatter(
@@ -213,6 +217,9 @@ class DiscountRuleViewSet(viewsets.ModelViewSet):
             if serializer.is_valid():
                 discount_rule = serializer.save()
 
+                # Invalidate all discount caches when a rule is updated
+                invalidate_all_discount_caches()
+
                 logger.info(f"Discount rule updated: {discount_rule.name} (ID: {discount_rule.id})")
                 return rest_api_formatter(
                     data=DiscountRuleSerializer(discount_rule).data,
@@ -274,6 +281,9 @@ class DiscountRuleViewSet(viewsets.ModelViewSet):
             rule_name = instance.name
             instance.is_active = False
             instance.save(update_fields=['is_active'])
+
+            # Invalidate all discount caches when a rule is deleted
+            invalidate_all_discount_caches()
 
             logger.info(f"Discount rule soft deleted: {rule_name} (ID: {rule_id})")
             return rest_api_formatter(
@@ -346,31 +356,40 @@ class AppliedDiscountViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for viewing Applied Discounts (read-only).
     Applied discounts are created automatically when orders are placed.
+    Uses Pagination class from core.utils (20 items per page).
     """
     queryset = AppliedDiscount.objects.all()
     serializer_class = AppliedDiscountSerializer
     permission_classes = [IsAuthenticated]
-    # filter_backends = [DjangoFilterBackend, OrderingFilter]
-    # filterset_fields = ['order', 'discount_rule', 'scope']
-    # ordering = ['-created_at']
-    
+    pagination_class = Pagination
+
     def get_queryset(self):
         """Filter applied discounts by user's orders."""
         user = self.request.user
         if user.is_staff:
             return AppliedDiscount.objects.select_related(
                 'order', 'discount_rule'
-            ).all()
+            ).filter(is_active=True).order_by('-created_at')
         return AppliedDiscount.objects.select_related(
             'order', 'discount_rule'
-        ).filter(order__user=user)
+        ).filter(
+            is_active=True,
+            order__user=user
+        ).order_by('-created_at')
 
     def list(self, request, *args, **kwargs):
-        """List applied discounts."""
+        """List applied discounts with pagination."""
         logger.info(f"Applied discounts list requested by user: {request.user.email}")
 
         try:
             queryset = self.filter_queryset(self.get_queryset())
+
+            # Use the pagination class
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
             serializer = self.get_serializer(queryset, many=True)
 
             logger.debug(f"Retrieved {queryset.count()} applied discounts")

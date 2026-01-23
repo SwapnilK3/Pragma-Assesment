@@ -4,6 +4,13 @@ from django.db import models
 from core.models import AbstractUUID, AbstractMonitor, Address
 
 
+class UserRole(models.TextChoices):
+    """User role choices for role-based access control."""
+    CUSTOMER = 'customer', 'Customer'
+    STAFF = 'staff', 'Staff'
+    ADMIN = 'admin', 'Admin'
+
+
 class UserManager(BaseUserManager):
     """Custom user manager for email-based authentication."""
 
@@ -59,6 +66,14 @@ class User(AbstractBaseUser, AbstractUUID, AbstractMonitor, PermissionsMixin):
     last_name = models.CharField(max_length=256, blank=True)
     addresses = models.ManyToManyField(
         Address, blank=True, related_name="user_addresses"
+    )
+
+    # Role-based access control
+    role = models.CharField(
+        max_length=20,
+        choices=UserRole.choices,
+        default=UserRole.CUSTOMER,
+        help_text="User role for access control"
     )
 
     # Status

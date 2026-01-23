@@ -18,10 +18,16 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
+    # Frontend URLs (templates)
+    path('', include('accounts.frontend_urls')),
+
+    # API endpoints
     path('api/auth/', include('accounts.urls')),
     path('api/product/', include('products.urls')),
     path('api/order/', include('orders.urls')),
     path('api/discount/', include('discounts.urls')),
-    path('admin/', admin.site.urls),
+    path('api/inventory/', include('inventory.urls')),
 
+    # Django admin
+    path('admin/', admin.site.urls),
 ]

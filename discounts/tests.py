@@ -7,6 +7,16 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 
+from discounts.cache import (
+    invalidate_all_discount_caches,
+    cache_active_discount_rule_ids,
+    get_cached_active_discount_rule_ids,
+    invalidate_discount_cache,
+    ACTIVE_RULES_CACHE_KEY,
+    LOYALTY_RULES_CACHE_KEY,
+    cache_loyalty_discount_rule_ids,
+    get_cached_loyalty_discount_rule_ids
+)
 from discounts.factories import DiscountRuleFactory
 from discounts.models import DiscountRule, AppliedDiscount
 from discounts.utils import get_discount_amount
@@ -451,6 +461,8 @@ class DiscountEngineTest(TestCase):
 
     def setUp(self):
         """Set up test data."""
+        # Clear discount cache before each test to avoid cache contamination
+        invalidate_all_discount_caches()
 
         # Create user
         self.user = UserFactory(email='customer@example.com', is_loyalty_member=False)
@@ -967,3 +979,198 @@ class DiscountEngineTest(TestCase):
         discount = get_discount_amount(order)
         # Should be capped at order total
         self.assertEqual(discount, Decimal('50.00'))
+
+
+class DiscountCacheTest(TestCase):
+    """Test cases for scalable discount caching (2 entries for all users)."""
+
+    def setUp(self):
+        """Set up test data."""
+        from django.core.cache import cache
+        
+        # Clear cache before each test
+        cache.clear()
+        
+        # Create users
+        self.regular_user = UserFactory(
+            email='regular@test.com',
+            is_loyalty_member=False
+        )
+        self.loyalty_user = UserFactory(
+            email='loyalty@test.com',
+            is_loyalty_member=True
+        )
+        
+        # Create category and product
+        self.category = CategoryFactory(name='Test Category')
+        self.product = ProductFactory(name='Test Product', category=self.category)
+        self.variant = ProductVariantFactory(product=self.product, price=Decimal('100.00'))
+        
+        # Create discount rules
+        self.public_discount = DiscountRuleFactory(
+            name='Public 10% Off',
+            scope='order',
+            discount_type='percentage',
+            discount_value=Decimal('10.00'),
+            requires_loyalty=False,
+            is_active=True
+        )
+        
+        self.loyalty_discount = DiscountRuleFactory(
+            name='Loyalty 20% Off',
+            scope='order',
+            discount_type='percentage',
+            discount_value=Decimal('20.00'),
+            requires_loyalty=True,
+            is_active=True
+        )
+
+    def tearDown(self):
+        """Clean up after each test."""
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_cache_keys_are_constant(self):
+        """Test that cache keys are constant (not per-user) for scalability."""
+
+        # Keys should be constant strings, not user-specific
+        self.assertEqual(ACTIVE_RULES_CACHE_KEY, 'discount_rules:active')
+        self.assertEqual(LOYALTY_RULES_CACHE_KEY, 'discount_rules:loyalty')
+
+    def test_cache_stores_active_rule_ids(self):
+        """Test that active discount rule IDs are cached correctly."""
+        rule_ids = ['rule-1', 'rule-2', 'rule-3']
+        
+        # Cache should be empty initially
+        cached = get_cached_active_discount_rule_ids()
+        self.assertIsNone(cached)
+        
+        # Store in cache
+        result = cache_active_discount_rule_ids(rule_ids)
+        self.assertTrue(result)
+        
+        # Retrieve from cache
+        cached = get_cached_active_discount_rule_ids()
+        self.assertEqual(cached, rule_ids)
+
+    def test_cache_stores_loyalty_rule_ids(self):
+        """Test that loyalty discount rule IDs are cached correctly."""
+
+        rule_ids = ['loyalty-rule-1', 'loyalty-rule-2']
+        
+        # Cache should be empty initially
+        cached = get_cached_loyalty_discount_rule_ids()
+        self.assertIsNone(cached)
+        
+        # Store in cache
+        result = cache_loyalty_discount_rule_ids(rule_ids)
+        self.assertTrue(result)
+        
+        # Retrieve from cache
+        cached = get_cached_loyalty_discount_rule_ids()
+        self.assertEqual(cached, rule_ids)
+
+    def test_loyalty_user_gets_more_discounts(self):
+        """Test that loyalty users see loyalty-only discounts."""
+        from discounts.helpers import get_eligible_discount_rules
+        from orders.models import Order, OrderItem
+        
+        # Create orders
+        regular_order = Order.objects.create(
+            user=self.regular_user,
+            order_status='created'
+        )
+        # Add order item to make subtotal > 0
+        OrderItem.objects.create(
+            order=regular_order,
+            product_variant=self.variant,
+            quantity=2,
+            amount=Decimal('200.00')
+        )
+        
+        loyalty_order = Order.objects.create(
+            user=self.loyalty_user,
+            order_status='created'
+        )
+        OrderItem.objects.create(
+            order=loyalty_order,
+            product_variant=self.variant,
+            quantity=2,
+            amount=Decimal('200.00')
+        )
+        
+        regular_rules = list(get_eligible_discount_rules(regular_order))
+        loyalty_rules = list(get_eligible_discount_rules(loyalty_order))
+        
+        # Regular user: only public discount
+        self.assertEqual(len(regular_rules), 1)
+        self.assertEqual(regular_rules[0].name, 'Public 10% Off')
+        
+        # Loyalty user: both discounts
+        self.assertEqual(len(loyalty_rules), 2)
+        rule_names = {r.name for r in loyalty_rules}
+        self.assertIn('Public 10% Off', rule_names)
+        self.assertIn('Loyalty 20% Off', rule_names)
+
+    def test_invalidate_clears_all_caches(self):
+        """Test invalidating all discount caches."""
+        
+        # Cache data
+        cache_active_discount_rule_ids(['rule-1', 'rule-2'])
+        cache_loyalty_discount_rule_ids(['rule-2'])
+        
+        # Verify cached
+        self.assertIsNotNone(get_cached_active_discount_rule_ids())
+        self.assertIsNotNone(get_cached_loyalty_discount_rule_ids())
+        
+        # Invalidate all
+        result = invalidate_discount_cache()
+        self.assertTrue(result)
+        
+        # Verify all cleared
+        self.assertIsNone(get_cached_active_discount_rule_ids())
+        self.assertIsNone(get_cached_loyalty_discount_rule_ids())
+
+    def test_invalidate_all_alias_works(self):
+        """Test that invalidate_all_discount_caches alias works."""
+
+        cache_active_discount_rule_ids(['rule-1'])
+        self.assertIsNotNone(get_cached_active_discount_rule_ids())
+        
+        result = invalidate_all_discount_caches()
+        self.assertTrue(result)
+        
+        self.assertIsNone(get_cached_active_discount_rule_ids())
+
+    def test_only_two_cache_entries_for_scalability(self):
+        """Test that only 2 cache entries exist regardless of user count."""
+        from discounts.cache import (
+            cache_active_discount_rule_ids,
+            cache_loyalty_discount_rule_ids,
+            get_cached_active_discount_rule_ids,
+            get_cached_loyalty_discount_rule_ids
+        )
+        
+        # Cache active and loyalty rules (simulating what happens after DB query)
+        all_active = [str(self.public_discount.id), str(self.loyalty_discount.id)]
+        loyalty_only = [str(self.loyalty_discount.id)]
+        
+        cache_active_discount_rule_ids(all_active)
+        cache_loyalty_discount_rule_ids(loyalty_only)
+        
+        # All users share the same cache entries
+        # Regular user filters out loyalty rules in memory
+        active = get_cached_active_discount_rule_ids()
+        loyalty = get_cached_loyalty_discount_rule_ids()
+        
+        self.assertEqual(len(active), 2)
+        self.assertEqual(len(loyalty), 1)
+        
+        # Simulate filtering for regular user (done in application code)
+        loyalty_set = set(loyalty)
+        regular_user_rules = [r for r in active if r not in loyalty_set]
+        self.assertEqual(len(regular_user_rules), 1)
+        
+        # Loyalty user gets all
+        loyalty_user_rules = active
+        self.assertEqual(len(loyalty_user_rules), 2)
