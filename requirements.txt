@@ -14,5 +14,6 @@ pillow==12.1.0
 python-decouple==3.8
 
 gunicorn==21.2.0
+whitenoise==6.6.0
 
 factory_boy==3.3.3

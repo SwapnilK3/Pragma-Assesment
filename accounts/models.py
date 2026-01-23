@@ -146,5 +146,17 @@ class User(AbstractBaseUser, AbstractUUID, AbstractMonitor, PermissionsMixin):
         self.email = self.email.lower().strip()
         self.first_name = ' '.join(self.first_name.strip().split())
         self.last_name = ' '.join(self.last_name.strip().split())
+        
+        # Sync is_staff and is_superuser based on role
+        if self.role == UserRole.ADMIN:
+            self.is_staff = True
+            self.is_superuser = True
+        elif self.role == UserRole.STAFF:
+            self.is_staff = True
+            self.is_superuser = False
+        elif self.role == UserRole.CUSTOMER:
+            self.is_staff = False
+            self.is_superuser = False
+            
         super().save(*args, **kwargs)
 
