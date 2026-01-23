@@ -99,7 +99,7 @@ class OrderPreviewView(APIView):
                 'discounts': discount_result['discount_details'],
                 'stackable_count': discount_result['stackable_count'],
                 'non_stackable_count': discount_result['non_stackable_count'],
-                'total_discount': str(total_discount.quantize(Decimal('0.01'))),
+                'total_discount': str(Decimal(total_discount).quantize(Decimal('0.01'))),
                 'tax': '0.00',
                 'final_amount': str(final_amount.quantize(Decimal('0.01'))),
                 'currency': '₹',
