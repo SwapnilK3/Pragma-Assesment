@@ -96,6 +96,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
         user = User.objects.create_user(
             email=validated_data['email'],
+            role=role,
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
             is_staff=is_staff,
